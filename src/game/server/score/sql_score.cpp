@@ -452,7 +452,7 @@ bool CSqlScore::MapInfoThread(CSqlServer* pSqlServer, const CSqlData *pGameData,
 				str_format(pOwnFinishesString, sizeof(pOwnFinishesString), ", your time: %02d:%05.2f", (int)(ownTime/60), ownTime-((int)ownTime/60*60));
 			}
 
-			str_format(aBuf, sizeof(aBuf), "\"%s\" by %s on %s, %s, %d %s%s, %d %s by %d %s%s%s", aMap, aMapper, aServer, aStars, points, points == 1 ? "point" : "points", pReleasedString, finishes, finishes == 1 ? "finish" : "finishes", finishers, finishers == 1 ? "tee" : "tees", pAverageString, pOwnFinishesString);
+			str_format(aBuf, sizeof(aBuf), "\"%s\" by %s on %s%s, finished by %d %s%s%s", aMap, aMapper, aServer, pReleasedString, finishers, finishers == 1 ? "tee" : "tees", pAverageString, pOwnFinishesString);
 		}
 
 		pData->GameServer()->SendChatTarget(pData->m_ClientID, aBuf);
