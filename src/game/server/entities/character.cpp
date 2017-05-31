@@ -1324,7 +1324,7 @@ void CCharacter::HandleSkippableTiles(int Index)
 	}
 }
 
-void CCharacter::HandleTiles(int Index)
+void CCharacter::HandleTiles(int Index, float FractionOfTick)
 {
 	CGameControllerDDRace* Controller = (CGameControllerDDRace*)GameServer()->m_pController;
 	int MapIndex = Index;
@@ -1365,7 +1365,7 @@ void CCharacter::HandleTiles(int Index)
 	m_TileSIndexT = (GameServer()->Collision()->m_pSwitchers && GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetDTileNumber(MapIndexT)].m_Status[Team()])?(Team() != TEAM_SUPER)? GameServer()->Collision()->GetDTileIndex(MapIndexT) : 0 : 0;
 	m_TileSFlagsT = (GameServer()->Collision()->m_pSwitchers && GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetDTileNumber(MapIndexT)].m_Status[Team()])?(Team() != TEAM_SUPER)? GameServer()->Collision()->GetDTileFlags(MapIndexT) : 0 : 0;
 	//Sensitivity
-	int S1 = GameServer()->Collision()->GetPureMapIndex(vec2(m_Pos.x + m_ProximityRadius / 3.f, m_Pos.y - m_ProximityRadius / 3.f));
+	/*int S1 = GameServer()->Collision()->GetPureMapIndex(vec2(m_Pos.x + m_ProximityRadius / 3.f, m_Pos.y - m_ProximityRadius / 3.f));
 	int S2 = GameServer()->Collision()->GetPureMapIndex(vec2(m_Pos.x + m_ProximityRadius / 3.f, m_Pos.y + m_ProximityRadius / 3.f));
 	int S3 = GameServer()->Collision()->GetPureMapIndex(vec2(m_Pos.x - m_ProximityRadius / 3.f, m_Pos.y - m_ProximityRadius / 3.f));
 	int S4 = GameServer()->Collision()->GetPureMapIndex(vec2(m_Pos.x - m_ProximityRadius / 3.f, m_Pos.y + m_ProximityRadius / 3.f));
@@ -1376,7 +1376,7 @@ void CCharacter::HandleTiles(int Index)
 	int FTile1 = GameServer()->Collision()->GetFTileIndex(S1);
 	int FTile2 = GameServer()->Collision()->GetFTileIndex(S2);
 	int FTile3 = GameServer()->Collision()->GetFTileIndex(S3);
-	int FTile4 = GameServer()->Collision()->GetFTileIndex(S4);
+	int FTile4 = GameServer()->Collision()->GetFTileIndex(S4);*/
 	if(Index < 0)
 	{
 		m_LastRefillJumps = false;
@@ -1439,7 +1439,7 @@ void CCharacter::HandleTiles(int Index)
 		m_TeleCheckpoint = tcp;
 
 	// start
-	if(((m_TileIndex == TILE_BEGIN) || (m_TileFIndex == TILE_BEGIN) || FTile1 == TILE_BEGIN || FTile2 == TILE_BEGIN || FTile3 == TILE_BEGIN || FTile4 == TILE_BEGIN || Tile1 == TILE_BEGIN || Tile2 == TILE_BEGIN || Tile3 == TILE_BEGIN || Tile4 == TILE_BEGIN) && (m_DDRaceState == DDRACE_NONE || m_DDRaceState == DDRACE_FINISHED || (m_DDRaceState == DDRACE_STARTED && !Team() && g_Config.m_SvTeam != 3)))
+	if(((m_TileIndex == TILE_BEGIN) || (m_TileFIndex == TILE_BEGIN)) && (m_DDRaceState == DDRACE_NONE || m_DDRaceState == DDRACE_FINISHED || (m_DDRaceState == DDRACE_STARTED && !Team() && g_Config.m_SvTeam != 3)))
 	{
 		bool CanBegin = true;
 		if(g_Config.m_SvResetPickups)
@@ -1463,7 +1463,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		if(CanBegin)
 		{
-			Teams()->OnCharacterStart(m_pPlayer->GetCID());
+			Teams()->OnCharacterStart(m_pPlayer->GetCID(), FractionOfTick);
 			m_CpActive = -2;
 		} else {
 
@@ -1473,8 +1473,8 @@ void CCharacter::HandleTiles(int Index)
 	}
 
 	// finish
-	if(((m_TileIndex == TILE_END) || (m_TileFIndex == TILE_END) || FTile1 == TILE_END || FTile2 == TILE_END || FTile3 == TILE_END || FTile4 == TILE_END || Tile1 == TILE_END || Tile2 == TILE_END || Tile3 == TILE_END || Tile4 == TILE_END) && m_DDRaceState == DDRACE_STARTED)
-		Controller->m_Teams.OnCharacterFinish(m_pPlayer->GetCID());
+	if(((m_TileIndex == TILE_END) || (m_TileFIndex == TILE_END)) && m_DDRaceState == DDRACE_STARTED)
+		Controller->m_Teams.OnCharacterFinish(m_pPlayer->GetCID(), FractionOfTick);
 
 	// freeze
 	if(((m_TileIndex == TILE_FREEZE) || (m_TileFIndex == TILE_FREEZE)) && !m_Super && !m_DeepFreeze)
@@ -2120,17 +2120,18 @@ void CCharacter::DDRacePostCoreTick()
 		m_Core.m_Jumped = 1;
 
 	int CurrentIndex = GameServer()->Collision()->GetMapIndex(m_Pos);
-	HandleSkippableTiles(CurrentIndex);
 
 	// handle Anti-Skip tiles
-	std::list < int > Indices = GameServer()->Collision()->GetMapIndices(m_PrevPos, m_Pos);
+	std::list< std::pair<int, float> > Indices = GameServer()->Collision()->GetMapIndices(m_PrevPos, m_Pos);
 	if(!Indices.empty())
-		for(std::list < int >::iterator i = Indices.begin(); i != Indices.end(); i++)
-			HandleTiles(*i);
+		for(std::list< std::pair<int, float> >::iterator i = Indices.begin(); i != Indices.end(); i++)
+			HandleTiles(i->first, i->second);
 	else
 	{
-		HandleTiles(CurrentIndex);
+		//HandleTiles(CurrentIndex);
 	}
+
+	HandleSkippableTiles(CurrentIndex);
 
 	// teleport gun
 	if (m_TeleGunTeleport)
