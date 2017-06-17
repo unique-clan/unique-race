@@ -1384,6 +1384,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 		m_LastBonus = false;
 		return;
 	}
+	m_Time = round_to_int(((float)(Server()->Tick()-1.0f+FractionOfTick - m_StartTime) / ((float)Server()->TickSpeed()))*1000.f)/1000.f;
 	int cp = GameServer()->Collision()->IsCheckpoint(MapIndex);
 	if(cp != -1 && m_DDRaceState == DDRACE_STARTED && cp > m_CpActive)
 	{
@@ -1393,7 +1394,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 		if(m_pPlayer->m_ClientVersion >= VERSION_DDRACE) {
 			CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
 			CNetMsg_Sv_DDRaceTime Msg;
-			Msg.m_Time = (int)m_Time;
+			Msg.m_Time = round_to_int(m_Time);
 			Msg.m_Check = 0;
 			Msg.m_Finish = 0;
 
@@ -1402,7 +1403,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 				if(pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
 				{
 					float Diff = (m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive])*100;
-					Msg.m_Check = (int)Diff;
+					Msg.m_Check = round_to_int(Diff);
 				}
 			}
 
@@ -1418,7 +1419,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 		if(m_pPlayer->m_ClientVersion >= VERSION_DDRACE) {
 			CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
 			CNetMsg_Sv_DDRaceTime Msg;
-			Msg.m_Time = (int)m_Time;
+			Msg.m_Time = round_to_int(m_Time);
 			Msg.m_Check = 0;
 			Msg.m_Finish = 0;
 
@@ -1427,7 +1428,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 				if(pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
 				{
 					float Diff = (m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive])*100;
-					Msg.m_Check = (int)Diff;
+					Msg.m_Check = round_to_int(Diff);
 				}
 			}
 
@@ -2094,8 +2095,6 @@ void CCharacter::DDRaceTick()
 
 void CCharacter::DDRacePostCoreTick()
 {
-	m_Time = (float)(Server()->Tick() - m_StartTime) / ((float)Server()->TickSpeed());
-
 	if (m_pPlayer->m_DefEmoteReset >= 0 && m_pPlayer->m_DefEmoteReset <= Server()->Tick())
 	{
 	m_pPlayer->m_DefEmoteReset = -1;
