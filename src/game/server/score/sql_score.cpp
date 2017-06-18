@@ -449,7 +449,7 @@ bool CSqlScore::MapInfoThread(CSqlServer* pSqlServer, const CSqlData *pGameData,
 			char pOwnFinishesString[40] = "\0";
 			if(ownTime > 0)
 			{
-				str_format(pOwnFinishesString, sizeof(pOwnFinishesString), ", your time is %02d:%06.3f", (int)ownTime/60, ownTime-((int)ownTime/60*60));
+				str_format(pOwnFinishesString, sizeof(pOwnFinishesString), ", your time: %02d:%06.3f", (int)ownTime/60, ownTime-((int)ownTime/60*60));
 			}
 
 			str_format(aBuf, sizeof(aBuf), "%s by %s on %s%s, finished by %d %s%s%s", aMap, aMapper, aServer, pReleasedString, finishers, finishers == 1 ? "tee" : "tees", pAverageString, pOwnFinishesString);
@@ -755,7 +755,7 @@ bool CSqlScore::ShowRankThread(CSqlServer* pSqlServer, const CSqlData *pGameData
 
 		if(pSqlServer->GetResults()->rowsCount() != 1)
 		{
-			str_format(aBuf, sizeof(aBuf), "'%s' is not ranked", pData->m_Name.Str());
+			str_format(aBuf, sizeof(aBuf), "%s is not ranked", pData->m_Name.Str());
 			pData->GameServer()->SendChatTarget(pData->m_ClientID, aBuf);
 		}
 		else
@@ -771,7 +771,7 @@ bool CSqlScore::ShowRankThread(CSqlServer* pSqlServer, const CSqlData *pGameData
 			}
 			else
 			{
-				str_format(aBuf, sizeof(aBuf), "%d. '%s' with %02d:%06.3f, requested by '%s'", Rank, pSqlServer->GetResults()->getString("Name").c_str(), (int)(Time/60), Time-((int)Time/60*60), pData->m_aRequestingPlayer);
+				str_format(aBuf, sizeof(aBuf), "%d. %s Time: %02d:%06.3f, requested by %s", Rank, pSqlServer->GetResults()->getString("Name").c_str(), (int)(Time/60), Time-((int)Time/60*60), pData->m_aRequestingPlayer);
 				pData->GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, pData->m_ClientID);
 			}
 		}
@@ -919,7 +919,7 @@ bool CSqlScore::ShowTop5Thread(CSqlServer* pSqlServer, const CSqlData *pGameData
 		{
 			Time = (float)pSqlServer->GetResults()->getDouble("Time");
 			Rank = (float)pSqlServer->GetResults()->getInt("Rank");
-			str_format(aBuf, sizeof(aBuf), "%d. '%s' with %02d:%06.3f", Rank, pSqlServer->GetResults()->getString("Name").c_str(), (int)(Time/60), Time-((int)Time/60*60));
+			str_format(aBuf, sizeof(aBuf), "%d. %s Time: %02d:%06.3f", Rank, pSqlServer->GetResults()->getString("Name").c_str(), (int)(Time/60), Time-((int)Time/60*60));
 			pData->GameServer()->SendChatTarget(pData->m_ClientID, aBuf);
 			//Rank++;
 		}
