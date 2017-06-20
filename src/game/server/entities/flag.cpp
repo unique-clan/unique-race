@@ -13,10 +13,12 @@ CFlag::CFlag(CGameWorld *pGameWorld)
 
 void CFlag::Snap(int SnappingClient)
 {
-	m_Pos = m_pCarryingCharacter->m_Pos;
-
 	if(!GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers)
 		return;
+	if(m_pCarryingCharacter->GetPlayer()->GetCID() == SnappingClient && !m_pCarryingCharacter->GetPlayer()->m_ShowFlag)
+		return;
+
+	m_Pos = m_pCarryingCharacter->m_Pos;
 	if(NetworkClipped(SnappingClient) && !GameServer()->m_apPlayers[SnappingClient]->m_ShowAll)
 		return;
 

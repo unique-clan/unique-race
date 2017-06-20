@@ -171,6 +171,7 @@ public:
 	bool m_Afk;
 	int m_KillMe;
 	bool m_HasFinishScore;
+	bool m_ShowFlag;
 
 	int m_ChatScore;
 

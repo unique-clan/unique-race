@@ -1469,6 +1469,22 @@ void CGameContext::ConModhelp(IConsole::IResult *pResult, void *pUserData)
 	}
 }
 
+void CGameContext::ConShowFlag(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *) pUserData;
+	if (!CheckClientID(pResult->m_ClientID))
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
+	if (!pPlayer)
+		return;
+
+	if (pResult->NumArguments())
+		pPlayer->m_ShowFlag = pResult->GetInteger(0);
+	else
+		pPlayer->m_ShowFlag = !pPlayer->m_ShowFlag;
+	pSelf->m_pController->UpdateRecordFlag();
+}
+
 #if defined(CONF_SQL)
 void CGameContext::ConPoints(IConsole::IResult *pResult, void *pUserData)
 {

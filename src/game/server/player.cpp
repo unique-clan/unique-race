@@ -107,6 +107,7 @@ void CPlayer::Reset()
 	m_ShowAll = g_Config.m_SvShowAllDefault;
 	m_SpecTeam = 0;
 	m_NinjaJetpack = false;
+	m_ShowFlag = true;
 
 	m_Paused = PAUSE_NONE;
 	m_DND = false;
