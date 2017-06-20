@@ -194,7 +194,7 @@ class IGameServer : public IInterface
 	MACRO_INTERFACE("gameserver", 0)
 protected:
 public:
-	virtual void OnInit() = 0;
+	virtual void OnInit(bool FirstInit = false) = 0;
 	virtual void OnConsoleInit() = 0;
 	virtual void OnMapChange(char *pNewMapName, int MapNameSize) = 0;
 

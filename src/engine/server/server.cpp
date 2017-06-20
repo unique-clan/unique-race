@@ -1752,11 +1752,12 @@ int CServer::Run()
 	m_PrintCBIndex = Console()->RegisterPrintCallback(g_Config.m_ConsoleOutputLevel, SendRconLineAuthed, this);
 
 	// load map
-	if(!LoadMap(g_Config.m_SvMap))
+	/*if(!LoadMap(g_Config.m_SvMap))
 	{
 		dbg_msg("server", "failed to load map. mapname='%s'", g_Config.m_SvMap);
 		return -1;
-	}
+	}*/
+	m_aCurrentMap[0] = 0;
 
 	// start server
 	NETADDR BindAddr;
@@ -1791,7 +1792,7 @@ int CServer::Run()
 	str_format(aBuf, sizeof(aBuf), "server name is '%s'", g_Config.m_SvName);
 	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 
-	GameServer()->OnInit();
+	GameServer()->OnInit(true);
 	if(ErrorShutdown())
 	{
 		return 1;

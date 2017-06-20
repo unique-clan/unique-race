@@ -216,7 +216,7 @@ public:
 	void LoadMapSettings();
 
 	// engine events
-	virtual void OnInit();
+	virtual void OnInit(bool FirstInit = false);
 	virtual void OnConsoleInit();
 	virtual void OnMapChange(char *pNewMapName, int MapNameSize);
 	virtual void OnShutdown(bool FullShutdown = false);
