@@ -43,6 +43,8 @@ IGameController::IGameController(class CGameContext *pGameServer)
 	m_aNumSpawnPoints[2] = 0;
 
 	m_CurrentRecord = 0;
+	m_CurrentRecordHolder[0] = 0;
+	m_pRecordFlag = NULL;
 }
 
 IGameController::~IGameController()
@@ -551,6 +553,13 @@ int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *
 	}
 	if(Weapon == WEAPON_SELF)
 		pVictim->GetPlayer()->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()*3.0f;*/
+
+	if(m_pRecordFlag && m_pRecordFlag->m_pCarryingCharacter == pVictim)
+	{
+		GameServer()->m_World.RemoveEntity(m_pRecordFlag);
+		m_pRecordFlag = NULL;
+	}
+
 	return 0;
 }
 
@@ -562,6 +571,8 @@ void IGameController::OnCharacterSpawn(class CCharacter *pChr)
 	// give default weapons
 	pChr->GiveWeapon(WEAPON_HAMMER);
 	pChr->GiveWeapon(WEAPON_GUN);
+
+	UpdateRecordFlag();
 }
 
 void IGameController::DoWarmup(int Seconds)
@@ -954,4 +965,35 @@ int IGameController::ClampTeam(int Team)
 	//if(IsTeamplay())
 		//return Team&1;
 	return 0;
+}
+
+void IGameController::UpdateRecordFlag()
+{
+	if(m_CurrentRecordHolder[0] == 0)
+		return;
+
+	CCharacter *RecordChar = NULL;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetCharacter()
+			&& !str_comp(Server()->ClientName(i), m_CurrentRecordHolder))
+		{
+			RecordChar = GameServer()->m_apPlayers[i]->GetCharacter();
+			break;
+		}
+	}
+
+	if(RecordChar)
+	{
+		if(!m_pRecordFlag) {
+			m_pRecordFlag = new CFlag(&GameServer()->m_World);
+			GameServer()->m_World.InsertEntity(m_pRecordFlag);
+		}
+		m_pRecordFlag->m_pCarryingCharacter = RecordChar;
+	}
+	else if(m_pRecordFlag)
+	{
+		GameServer()->m_World.RemoveEntity(m_pRecordFlag);
+		m_pRecordFlag = NULL;
+	}
 }

@@ -4,6 +4,7 @@
 #define GAME_SERVER_GAMECONTROLLER_H
 
 #include <base/vmath.h>
+#include <game/server/entities/flag.h>
 
 class CDoor;
 #if !defined(_MSC_VER) || _MSC_VER >= 1600
@@ -158,6 +159,9 @@ public:
 	// DDRace
 
 	float m_CurrentRecord;
+	char m_CurrentRecordHolder[16];
+	CFlag *m_pRecordFlag;
+	void UpdateRecordFlag();
 };
 
 #endif

@@ -560,6 +560,9 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 			GameServer()->m_pController->m_CurrentRecord = Time;
 			//dbg_msg("character", "Finish");
 			NeedToSendNewRecord = true;
+
+			str_copy(GameServer()->m_pController->m_CurrentRecordHolder, Server()->ClientName(Player->GetCID()), sizeof(IGameController::m_CurrentRecordHolder));
+			GameServer()->m_pController->UpdateRecordFlag();
 		}
 	}
 
