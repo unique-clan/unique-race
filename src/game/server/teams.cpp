@@ -599,7 +599,7 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 		}
 	}
 
-	if (Player->m_ClientVersion >= VERSION_DDRACE)
+	/*if (Player->m_ClientVersion >= VERSION_DDRACE)
 	{
 		CNetMsg_Sv_DDRaceTime Msg;
 		Msg.m_Time = round_to_int(Time * 100.0f);
@@ -613,7 +613,7 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 		}
 
 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, Player->GetCID());
-	}
+	}*/
 
 	int TTime = 0 - (int)Time;
 	if (Player->m_Score < TTime || !Player->m_HasFinishScore)
