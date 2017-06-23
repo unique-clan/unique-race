@@ -172,6 +172,7 @@ public:
 	int m_KillMe;
 	bool m_HasFinishScore;
 	bool m_ShowFlag;
+	int m_SortedScore;
 
 	int m_ChatScore;
 

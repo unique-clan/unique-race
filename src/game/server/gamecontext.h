@@ -415,6 +415,9 @@ public:
 
 	int m_ChatResponseTargetID;
 	int m_ChatPrintCBIndex;
+
+	int m_SortPlayerScoresTick;
+	void SortPlayerScores();
 };
 
 inline int64_t CmaskAll() { return -1LL; }

@@ -95,6 +95,8 @@ void CCharacter::SetWeapon(int W)
 	m_QueuedWeapon = -1;
 	m_Core.m_ActiveWeapon = W;
 	GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SWITCH, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+	if(W != WEAPON_HAMMER)
+		m_ShowTimesInNames = false;
 
 	if(m_Core.m_ActiveWeapon < 0 || m_Core.m_ActiveWeapon >= NUM_WEAPONS)
 		m_Core.m_ActiveWeapon = 0;
@@ -384,6 +386,7 @@ void CCharacter::FireWeapon()
 			// reset objects Hit
 			m_NumObjectsHit = 0;
 			GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+			m_ShowTimesInNames = !m_ShowTimesInNames;
 
 			if (m_Hit&DISABLE_HIT_HAMMER) break;
 
@@ -2267,6 +2270,7 @@ void CCharacter::DDRaceInit()
 	m_Jetpack = false;
 	m_Core.m_Jumps = 2;
 	m_FreezeHammer = false;
+	m_ShowTimesInNames = false;
 
 	int Team = Teams()->m_Core.Team(m_Core.m_Id);
 

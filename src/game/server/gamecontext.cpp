@@ -60,6 +60,7 @@ void CGameContext::Construct(int Resetting)
 	m_ChatResponseTargetID = -1;
 	m_aDeleteTempfile[0] = 0;
 	m_TeeHistorianActive = false;
+	m_SortPlayerScoresTick = -1;
 }
 
 CGameContext::CGameContext(int Resetting)
@@ -3588,4 +3589,53 @@ void CGameContext::ForceVote(int EnforcerID, bool Success)
 	SendChatTarget(-1, aBuf);
 	str_format(aBuf, sizeof(aBuf), "forcing vote %s", pOption);
 	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+}
+
+void CGameContext::SortPlayerScores()
+{
+	if(m_SortPlayerScoresTick == Server()->Tick())
+		return;
+
+	CPlayer *PlayersSorted[MAX_CLIENTS];
+	mem_copy(PlayersSorted, m_apPlayers, sizeof(PlayersSorted));
+
+	// sort players by name
+	for(int k = 0; k < MAX_CLIENTS-1; k++) // ffs, bubblesort
+	{
+		for(int i = 0; i < MAX_CLIENTS-k-1; i++)
+		{
+			if(PlayersSorted[i+1] && (!PlayersSorted[i] || str_comp_nocase(Server()->ClientName(PlayersSorted[i]->GetCID()), Server()->ClientName(PlayersSorted[i+1]->GetCID())) > 0))
+			{
+				CPlayer *pTmp = PlayersSorted[i];
+				PlayersSorted[i] = PlayersSorted[i+1];
+				PlayersSorted[i+1] = pTmp;
+			}
+		}
+	}
+
+	// sort players by score
+	for(int k = 0; k < MAX_CLIENTS-1; k++) // ffs, bubblesort
+	{
+		for(int i = 0; i < MAX_CLIENTS-k-1; i++)
+		{
+			if(PlayersSorted[i+1] && (!PlayersSorted[i] || PlayersSorted[i]->m_Score < PlayersSorted[i+1]->m_Score))
+			{
+				CPlayer *pTmp = PlayersSorted[i];
+				PlayersSorted[i] = PlayersSorted[i+1];
+				PlayersSorted[i+1] = pTmp;
+			}
+		}
+	}
+
+	int Score = 0;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(PlayersSorted[i])
+		{
+			Score -= 60;
+			PlayersSorted[i]->m_SortedScore = Score;
+		}
+	}
+
+	m_SortPlayerScoresTick = Server()->Tick();
 }

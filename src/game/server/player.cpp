@@ -327,6 +327,21 @@ void CPlayer::Snap(int SnappingClient)
 		pPlayerInfo->m_Score = -9999;
 	else
 		pPlayerInfo->m_Score = abs(m_Score) * -1;
+
+	if(GameServer()->m_apPlayers[SnappingClient] && GameServer()->m_apPlayers[SnappingClient]->GetCharacter() && GameServer()->m_apPlayers[SnappingClient]->GetCharacter()->m_ShowTimesInNames)
+	{
+		CPlayerData *pData = GameServer()->Score()->PlayerData(GetCID());
+		if(pData->m_BestTime)
+		{
+			char aBuf[16];
+			str_format(aBuf, sizeof(aBuf),
+					"%02d:%06.3f",
+					(int)pData->m_BestTime / 60, pData->m_BestTime - ((int)pData->m_BestTime / 60 * 60));
+			StrToInts(&pClientInfo->m_Name0, 4, aBuf);
+		}
+		GameServer()->SortPlayerScores();
+		pPlayerInfo->m_Score = m_SortedScore;
+	}
 }
 
 void CPlayer::FakeSnap()
