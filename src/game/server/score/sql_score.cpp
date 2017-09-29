@@ -1641,4 +1641,91 @@ bool CSqlScore::LoadTeamThread(CSqlServer* pSqlServer, const CSqlData *pGameData
 	return false;
 }
 
+void CSqlScore::ProcessRecordQueue()
+{
+	void *ProcessThread = thread_init(ExecSqlFunc, new CSqlExecData(ProcessRecordQueueThread, new CSqlData()));
+	thread_detach(ProcessThread);
+}
+
+bool CSqlScore::ProcessRecordQueueThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure)
+{
+	const CSqlData* pData = pGameData;
+
+	if (HandleFailure)
+		return true;
+
+	try
+	{
+		char aBuf[1024];
+		str_format(aBuf, sizeof(aBuf), "SELECT u1.Id, u1.Name, u1.Time FROM %s_recordqueue u1 INNER JOIN (SELECT MIN(t1.Id) AS minId FROM %s_recordqueue t1 INNER JOIN (SELECT Map, MIN(Time) AS minTime FROM race_recordqueue WHERE Map = '%s' GROUP BY Map) t2 ON t1.Map = t2.Map AND t1.Time = t2.minTime GROUP BY t1.Map) u2 ON u1.Id = u2.minId WHERE u1.Id > %d AND u1.Timestamp > (NOW() - INTERVAL 2 SECOND);", pSqlServer->GetPrefix(), pSqlServer->GetPrefix(), pData->m_Map.ClrStr(), ((CGameControllerDDRace*)pData->GameServer()->m_pController)->m_CurrentRecordQueueId);
+		pSqlServer->executeSqlQuery(aBuf);
+
+		if(pSqlServer->GetResults()->next())
+		{
+			float Time = pSqlServer->GetResults()->getDouble("Time");
+			if (Time < ((CGameControllerDDRace*)pData->GameServer()->m_pController)->m_CurrentRecord)
+			{
+				std::cout << "Updating Id="<<pSqlServer->GetResults()->getInt("Id")<<" Player="<<pSqlServer->GetResults()->getString("Name").c_str()<<" Time="<<Time<<std::endl;
+				((CGameControllerDDRace*)pData->GameServer()->m_pController)->m_CurrentRecord = Time;
+				str_copy(((CGameControllerDDRace*)pData->GameServer()->m_pController)->m_CurrentRecordHolder, pSqlServer->GetResults()->getString("Name").c_str(), sizeof(CGameControllerDDRace::m_CurrentRecordHolder));
+				((CGameControllerDDRace*)pData->GameServer()->m_pController)->UpdateRecordFlag();
+			}
+			((CGameControllerDDRace*)pData->GameServer()->m_pController)->m_CurrentRecordQueueId = pSqlServer->GetResults()->getInt("Id");
+		}
+		return true;
+	}
+	catch (sql::SQLException &e)
+	{
+		dbg_msg("sql", "MySQL ERROR: %s", e.what());
+		dbg_msg("sql", "ERROR: could not process record queue");
+	}
+	catch (CGameContextError &e)
+	{
+		dbg_msg("sql", "WARNING: Aborted processing record queue due to reload/change of map.");
+		return true;
+	}
+
+	return false;
+}
+
+void CSqlScore::InsertRecordQueue(const char *PlayerName, float Time)
+{
+	CSqlScoreData *Tmp = new CSqlScoreData();
+	Tmp->m_Name = PlayerName;
+	Tmp->m_Time = Time;
+	void *InsertThread = thread_init(ExecSqlFunc, new CSqlExecData(InsertRecordQueueThread, Tmp, false));
+	thread_detach(InsertThread);
+}
+
+bool CSqlScore::InsertRecordQueueThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure)
+{
+        const CSqlScoreData *pData = dynamic_cast<const CSqlScoreData *>(pGameData);
+
+	if (HandleFailure)
+		return true;
+
+	try
+	{
+		char aBuf[1024];
+		str_format(aBuf, sizeof(aBuf), "INSERT INTO %s_recordqueue (Map, Name, Time) VALUES ('%s', '%s', %.3f);", pSqlServer->GetPrefix(), pData->m_Map.ClrStr(), pData->m_Name.ClrStr(), pData->m_Time);
+		dbg_msg("sql", "%s", aBuf);
+		pSqlServer->executeSql(aBuf);
+		dbg_msg("sql", "Inserting into record queue done");
+		std::cout << "Inserted Name="<<pData->m_Name.ClrStr()<<" Time="<<pData->m_Time<<std::endl;
+		return true;
+	}
+	catch (sql::SQLException &e)
+	{
+		dbg_msg("sql", "MySQL ERROR: %s", e.what());
+		dbg_msg("sql", "ERROR: could not insert into record queue");
+	}
+	catch (CGameContextError &e)
+	{
+		dbg_msg("sql", "WARNING: Aborted inserting into record queue due to reload/change of map.");
+		return true;
+	}
+
+	return false;
+}
+
 #endif

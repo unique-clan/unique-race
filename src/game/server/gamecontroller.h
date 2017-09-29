@@ -162,6 +162,7 @@ public:
 	char m_CurrentRecordHolder[16];
 	CFlag *m_pRecordFlag;
 	void UpdateRecordFlag();
+	uint32_t m_CurrentRecordQueueId;
 };
 
 #endif

@@ -167,6 +167,8 @@ class CSqlScore: public IScore
 	static bool RandomUnfinishedMapThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure = false);
 	static bool SaveTeamThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure = false);
 	static bool LoadTeamThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure = false);
+	static bool ProcessRecordQueueThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure = false);
+	static bool InsertRecordQueueThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure = false);
 
 public:
 
@@ -195,6 +197,8 @@ public:
 	virtual void RandomUnfinishedMap(int ClientID, int stars);
 	virtual void SaveTeam(int Team, const char* Code, int ClientID, const char* Server);
 	virtual void LoadTeam(const char* Code, int ClientID);
+	virtual void ProcessRecordQueue();
+	virtual void InsertRecordQueue(const char *PlayerName, float Time);
 
 	virtual void OnShutdown();
 };

@@ -418,6 +418,7 @@ public:
 
 	int m_SortPlayerScoresTick;
 	void SortPlayerScores();
+	int64 m_LastProcessQueue;
 };
 
 inline int64_t CmaskAll() { return -1LL; }

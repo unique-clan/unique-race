@@ -61,6 +61,7 @@ void CGameContext::Construct(int Resetting)
 	m_aDeleteTempfile[0] = 0;
 	m_TeeHistorianActive = false;
 	m_SortPlayerScoresTick = -1;
+	m_LastProcessQueue = 0;
 }
 
 CGameContext::CGameContext(int Resetting)
@@ -953,6 +954,12 @@ void CGameContext::OnTick()
 		}
 	}
 #endif
+
+	if(m_LastProcessQueue < time_get()-time_freq())
+	{
+		m_LastProcessQueue = time_get();
+		Score()->ProcessRecordQueue();
+	}
 }
 
 // Server hooks

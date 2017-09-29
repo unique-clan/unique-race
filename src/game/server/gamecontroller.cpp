@@ -45,6 +45,7 @@ IGameController::IGameController(class CGameContext *pGameServer)
 	m_CurrentRecord = 0;
 	m_CurrentRecordHolder[0] = 0;
 	m_pRecordFlag = NULL;
+	m_CurrentRecordQueueId = 0;
 }
 
 IGameController::~IGameController()
