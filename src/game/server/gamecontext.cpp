@@ -3637,7 +3637,7 @@ void CGameContext::SortPlayerScores()
 	int Score = 0;
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(PlayersSorted[i])
+		if(PlayersSorted[i] && PlayersSorted[i]->GetTeam() != TEAM_SPECTATORS)
 		{
 			Score -= 60;
 			PlayersSorted[i]->m_SortedScore = Score;
