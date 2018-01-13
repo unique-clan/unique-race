@@ -30,7 +30,7 @@ IGameController::IGameController(class CGameContext *pGameServer)
 	m_SuddenDeath = 0;
 	m_RoundStartTick = Server()->Tick();
 	m_RoundCount = 0;
-	m_GameFlags = 0;
+	m_GameFlags = GAMEFLAG_FLAGS;
 	//m_aTeamscore[TEAM_RED] = 0;
 	//m_aTeamscore[TEAM_BLUE] = 0;
 	m_aMapWish[0] = 0;

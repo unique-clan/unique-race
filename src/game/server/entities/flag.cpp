@@ -13,7 +13,7 @@ CFlag::CFlag(CGameWorld *pGameWorld)
 
 void CFlag::Snap(int SnappingClient)
 {
-	if(!GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers)
+	if(!GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers && m_pCarryingCharacter->GetPlayer()->GetCID() != SnappingClient && GameServer()->m_apPlayers[SnappingClient]->GetTeam() != TEAM_SPECTATORS)
 		return;
 	if(m_pCarryingCharacter->GetPlayer()->GetCID() == SnappingClient && !m_pCarryingCharacter->GetPlayer()->m_ShowFlag)
 		return;
@@ -27,13 +27,13 @@ void CFlag::Snap(int SnappingClient)
 		return;
 	pFlag->m_X = (int)m_Pos.x;
 	pFlag->m_Y = (int)m_Pos.y;
-	pFlag->m_Team = 0;
+	pFlag->m_Team = TEAM_BLUE;
 
 	CNetObj_GameData *pGameDataObj = (CNetObj_GameData *)Server()->SnapNewItem(NETOBJTYPE_GAMEDATA, 0, sizeof(CNetObj_GameData));
 	if(!pGameDataObj)
 		return;
 	pGameDataObj->m_TeamscoreRed = 0;
 	pGameDataObj->m_TeamscoreBlue = 0;
-	pGameDataObj->m_FlagCarrierRed = m_pCarryingCharacter->GetPlayer()->GetCID();
-	pGameDataObj->m_FlagCarrierBlue = FLAG_MISSING;
+	pGameDataObj->m_FlagCarrierRed = FLAG_MISSING;
+	pGameDataObj->m_FlagCarrierBlue = m_pCarryingCharacter->GetPlayer()->GetCID();
 }
