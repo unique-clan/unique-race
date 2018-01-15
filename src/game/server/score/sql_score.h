@@ -106,6 +106,7 @@ struct CSqlScoreData : CSqlData
 	int m_Num;
 	bool m_Search;
 	char m_aRequestingPlayer [MAX_NAME_LENGTH];
+	float m_CurrentRecord;
 };
 
 struct CSqlTeamScoreData : CSqlData
@@ -180,7 +181,7 @@ public:
 	virtual void MapInfo(int ClientID, const char* MapName);
 	virtual void MapVote(int ClientID, const char* MapName);
 	virtual void SaveScore(int ClientID, float Time,
-			float CpTime[NUM_CHECKPOINTS]);
+			float CpTime[NUM_CHECKPOINTS], float CurrentRecord);
 	virtual void SaveTeamScore(int* aClientIDs, unsigned int Size, float Time);
 	virtual void ShowRank(int ClientID, const char* pName, bool Search = false);
 	virtual void ShowTeamRank(int ClientID, const char* pName, bool Search = false);

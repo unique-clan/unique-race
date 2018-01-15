@@ -547,7 +547,7 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 	if (CallSaveScore)
 		if (g_Config.m_SvNamelessScore || !str_startswith(Server()->ClientName(Player->GetCID()), "nameless tee"))
 			GameServer()->Score()->SaveScore(Player->GetCID(), Time,
-					GetCpCurrent(Player));
+					GetCpCurrent(Player), GameServer()->m_pController->m_CurrentRecord);
 
 	bool NeedToSendNewRecord = false;
 	// update server best time

@@ -19,8 +19,6 @@ void CFlag::Snap(int SnappingClient)
 		return;
 
 	m_Pos = m_pCarryingCharacter->m_Pos;
-	if(NetworkClipped(SnappingClient) && !GameServer()->m_apPlayers[SnappingClient]->m_ShowAll)
-		return;
 
 	CNetObj_Flag *pFlag = (CNetObj_Flag *)Server()->SnapNewItem(NETOBJTYPE_FLAG, 0, sizeof(CNetObj_Flag));
 	if(!pFlag)

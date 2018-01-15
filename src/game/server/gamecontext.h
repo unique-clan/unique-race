@@ -318,6 +318,7 @@ private:
 	static void ConTimes(IConsole::IResult *pResult, void *pUserData);
 	static void ConPoints(IConsole::IResult *pResult, void *pUserData);
 	static void ConTopPoints(IConsole::IResult *pResult, void *pUserData);
+	static void ConMapPoints(IConsole::IResult *pResult, void *pUserData);
 	#endif
 
 	static void ConUTF8(IConsole::IResult *pResult, void *pUserData);
@@ -419,6 +420,7 @@ public:
 	int m_SortPlayerScoresTick;
 	void SortPlayerScores();
 	int64 m_LastProcessQueue;
+	float m_MapS;
 };
 
 inline int64_t CmaskAll() { return -1LL; }

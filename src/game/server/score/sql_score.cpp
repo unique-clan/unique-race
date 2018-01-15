@@ -149,6 +149,12 @@ bool CSqlScore::Init(CSqlServer* pSqlServer, const CSqlData *pGameData, bool Han
 			str_copy(((CGameControllerDDRace*)pData->GameServer()->m_pController)->m_CurrentRecordHolder, pSqlServer->GetResults()->getString("Name").c_str(), sizeof(CGameControllerDDRace::m_CurrentRecordHolder));
 			((CGameControllerDDRace*)pData->GameServer()->m_pController)->UpdateRecordFlag();
 		}
+		str_format(aBuf, sizeof(aBuf), "SELECT CASE WHEN Server = 'Short' THEN 5.0 WHEN Server = 'Middle' THEN 3.5 WHEN Server = 'Long' THEN CASE WHEN Stars = 0 THEN 2.0 WHEN Stars = 1 THEN 1.0 WHEN Stars = 2 THEN 0.05 END END as S FROM %s_maps WHERE Map='%s';", pSqlServer->GetPrefix(), pData->m_Map.ClrStr());
+		pSqlServer->executeSqlQuery(aBuf);
+		if(pSqlServer->GetResults()->next())
+		{
+			pData->GameServer()->m_MapS = (float)pSqlServer->GetResults()->getDouble("S");
+		}
 		return true;
 	}
 	catch (sql::SQLException &e)
@@ -459,6 +465,16 @@ bool CSqlScore::MapInfoThread(CSqlServer* pSqlServer, const CSqlData *pGameData,
 				str_format(pOwnFinishesString, sizeof(pOwnFinishesString), ", your time: %02d:%06.3f", (int)ownTime/60, ownTime-((int)ownTime/60*60));
 			}
 
+			if(str_comp(aServer, "Long") == 0)
+			{
+				switch(stars)
+				{
+					case 0: str_append(aServer, " Easy",     sizeof(aServer)); break;
+					case 1: str_append(aServer, " Advanced", sizeof(aServer)); break;
+					case 2: str_append(aServer, " Hard",     sizeof(aServer)); break;
+				}
+			}
+
 			str_format(aBuf, sizeof(aBuf), "%s by %s on %s%s, finished by %d %s%s", aMap, aMapper, aServer, pReleasedString, finishers, finishers == 1 ? "tee" : "tees", pOwnFinishesString);
 		}
 
@@ -478,7 +494,7 @@ bool CSqlScore::MapInfoThread(CSqlServer* pSqlServer, const CSqlData *pGameData,
 	return false;
 }
 
-void CSqlScore::SaveScore(int ClientID, float Time, float CpTime[NUM_CHECKPOINTS])
+void CSqlScore::SaveScore(int ClientID, float Time, float CpTime[NUM_CHECKPOINTS], float CurrentRecord)
 {
 	CConsole* pCon = (CConsole*)GameServer()->Console();
 	if(pCon->m_Cheated)
@@ -489,6 +505,7 @@ void CSqlScore::SaveScore(int ClientID, float Time, float CpTime[NUM_CHECKPOINTS
 	Tmp->m_Time = Time;
 	for(int i = 0; i < NUM_CHECKPOINTS; i++)
 		Tmp->m_aCpCurrent[i] = CpTime[i];
+	Tmp->m_CurrentRecord = CurrentRecord;
 
 	void *SaveThread = thread_init(ExecSqlFunc, new CSqlExecData(SaveScoreThread, Tmp, false));
 	thread_detach(SaveThread);
@@ -534,6 +551,38 @@ bool CSqlScore::SaveScoreThread(CSqlServer* pSqlServer, const CSqlData *pGameDat
 
 		str_format(aBuf, sizeof(aBuf), "SELECT * FROM %s_race WHERE Map='%s' AND Name='%s' ORDER BY time ASC LIMIT 1;", pSqlServer->GetPrefix(), pData->m_Map.ClrStr(), pData->m_Name.ClrStr());
 		pSqlServer->executeSqlQuery(aBuf);
+		bool FirstRank = !pSqlServer->GetResults()->next();
+		float OldTime;
+		if(!FirstRank)
+			OldTime = pSqlServer->GetResults()->getDouble("Time");
+		if(FirstRank || pData->m_Time < OldTime)
+		{
+			str_format(aBuf, sizeof(aBuf), "SELECT Server, Stars FROM %s_maps WHERE Map='%s'", pSqlServer->GetPrefix(), pData->m_Map.ClrStr());
+			pSqlServer->executeSqlQuery(aBuf);
+			pSqlServer->GetResults()->next();
+			float S;
+			char aServer[32];
+			strcpy(aServer, pSqlServer->GetResults()->getString("Server").c_str());
+			if(str_comp(aServer, "Short") == 0)
+				S = 5.0f;
+			else if(str_comp(aServer, "Middle") == 0)
+				S = 3.5f;
+			else if(str_comp(aServer, "Long") == 0)
+				switch(pSqlServer->GetResults()->getInt("Stars"))
+				{
+					case 0: S = 2.0f; break;
+					case 1: S = 1.0f; break;
+					case 2: S = 0.05f; break;
+				}
+			if(pData->m_Time < pData->m_CurrentRecord)
+			{
+				str_format(aBuf, sizeof(aBuf), "UPDATE %s_points t1 INNER JOIN (SELECT Name, ROUND(MIN(Time), 3) AS minTime FROM %s_race WHERE Map='%s' GROUP BY Name) t2 ON t1.Name = t2.Name SET t1.Points=t1.Points-FLOOR(100*EXP(-%f*(t2.minTime/%f-1)))+FLOOR(100*EXP(-%f*(t2.minTime/%f-1)));", pSqlServer->GetPrefix(), pSqlServer->GetPrefix(), pData->m_Map.ClrStr(), S, pData->m_CurrentRecord, S, pData->m_Time);
+				pSqlServer->executeSql(aBuf);
+			}
+			float Record = pData->m_CurrentRecord ? min(pData->m_CurrentRecord, pData->m_Time) : pData->m_Time;
+			str_format(aBuf, sizeof(aBuf), "INSERT INTO %s_points SELECT '%s', -IFNULL(%s, FLOOR(100*EXP(-%f*(%f/%f-1))))+FLOOR(100*EXP(-%f*(%f/%f-1))) ON DUPLICATE KEY UPDATE Points=Points+VALUES(Points);", pSqlServer->GetPrefix(), pData->m_Name.ClrStr(), FirstRank ? "0" : "NULL", S, OldTime, Record, S, pData->m_Time, Record);
+			pSqlServer->executeSql(aBuf);
+		}
 		/*if(!pSqlServer->GetResults()->next())
 		{
 			str_format(aBuf, sizeof(aBuf), "SELECT Points FROM %s_maps WHERE Map ='%s'", pSqlServer->GetPrefix(), pData->m_Map.ClrStr());
@@ -1182,12 +1231,12 @@ bool CSqlScore::ShowPointsThread(CSqlServer* pSqlServer, const CSqlData *pGameDa
 		pSqlServer->executeSql("SET @pos := 0;");
 
 		char aBuf[512];
-		str_format(aBuf, sizeof(aBuf), "SELECT Rank, Points, Name FROM (SELECT Name, (@pos := @pos+1) pos, (@rank := IF(@prev = Points, @rank, @pos)) Rank, (@prev := Points) Points FROM (SELECT Name, Points FROM %s_points GROUP BY Name ORDER BY Points DESC) as a) as b where Name = '%s';", pSqlServer->GetPrefix(), pData->m_Name.ClrStr());
+		str_format(aBuf, sizeof(aBuf), "SELECT Rank, Points, Name FROM (SELECT Name, (@pos := @pos+1) pos, (@rank := IF(@prev = Points, @rank, @pos)) Rank, (@prev := Points) Points FROM (SELECT Name, Points FROM %s_points WHERE Points > 0 GROUP BY Name ORDER BY Points DESC) as a) as b where Name = '%s';", pSqlServer->GetPrefix(), pData->m_Name.ClrStr());
 		pSqlServer->executeSqlQuery(aBuf);
 
 		if(pSqlServer->GetResults()->rowsCount() != 1)
 		{
-			str_format(aBuf, sizeof(aBuf), "%s has not collected any points so far", pData->m_Name.Str());
+			str_format(aBuf, sizeof(aBuf), "%s Points: 0", pData->m_Name.Str());
 			pData->GameServer()->SendChatTarget(pData->m_ClientID, aBuf);
 		}
 		else
@@ -1241,7 +1290,7 @@ bool CSqlScore::ShowTopPointsThread(CSqlServer* pSqlServer, const CSqlData *pGam
 		pSqlServer->executeSql("SET @prev := NULL;");
 		pSqlServer->executeSql("SET @rank := 1;");
 		pSqlServer->executeSql("SET @pos := 0;");
-		str_format(aBuf, sizeof(aBuf), "SELECT Rank, Points, Name FROM (SELECT Name, (@pos := @pos+1) pos, (@rank := IF(@prev = Points,@rank, @pos)) Rank, (@prev := Points) Points FROM (SELECT Name, Points FROM %s_points GROUP BY Name ORDER BY Points DESC) as a) as b ORDER BY Rank %s LIMIT %d, 5;", pSqlServer->GetPrefix(), pOrder, LimitStart);
+		str_format(aBuf, sizeof(aBuf), "SELECT Rank, Points, Name FROM (SELECT Name, (@pos := @pos+1) pos, (@rank := IF(@prev = Points,@rank, @pos)) Rank, (@prev := Points) Points FROM (SELECT Name, Points FROM %s_points WHERE Points > 0 GROUP BY Name ORDER BY Points DESC) as a) as b ORDER BY Rank %s LIMIT %d, 5;", pSqlServer->GetPrefix(), pOrder, LimitStart);
 
 		pSqlServer->executeSqlQuery(aBuf);
 
@@ -1665,7 +1714,6 @@ bool CSqlScore::ProcessRecordQueueThread(CSqlServer* pSqlServer, const CSqlData 
 			float Time = pSqlServer->GetResults()->getDouble("Time");
 			if (Time < ((CGameControllerDDRace*)pData->GameServer()->m_pController)->m_CurrentRecord)
 			{
-				std::cout << "Updating Id="<<pSqlServer->GetResults()->getInt("Id")<<" Player="<<pSqlServer->GetResults()->getString("Name").c_str()<<" Time="<<Time<<std::endl;
 				((CGameControllerDDRace*)pData->GameServer()->m_pController)->m_CurrentRecord = Time;
 				str_copy(((CGameControllerDDRace*)pData->GameServer()->m_pController)->m_CurrentRecordHolder, pSqlServer->GetResults()->getString("Name").c_str(), sizeof(CGameControllerDDRace::m_CurrentRecordHolder));
 				((CGameControllerDDRace*)pData->GameServer()->m_pController)->UpdateRecordFlag();
@@ -1711,7 +1759,6 @@ bool CSqlScore::InsertRecordQueueThread(CSqlServer* pSqlServer, const CSqlData *
 		dbg_msg("sql", "%s", aBuf);
 		pSqlServer->executeSql(aBuf);
 		dbg_msg("sql", "Inserting into record queue done");
-		std::cout << "Inserted Name="<<pData->m_Name.ClrStr()<<" Time="<<pData->m_Time<<std::endl;
 		return true;
 	}
 	catch (sql::SQLException &e)

@@ -1544,3 +1544,30 @@ void CGameContext::ConTopPoints(IConsole::IResult *pResult, void *pUserData)
 		pSelf->m_apPlayers[pResult->m_ClientID]->m_LastSQLQuery = pSelf->Server()->Tick();
 }
 #endif
+
+#if defined(CONF_SQL)
+void CGameContext::ConMapPoints(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *) pUserData;
+	if (!CheckClientID(pResult->m_ClientID))
+		return;
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
+	if (!pPlayer)
+		return;
+
+	char aBuf[512];
+	float PlayerTime = pSelf->Score()->PlayerData(pPlayer->GetCID())->m_BestTime;
+	float BestTime = ((CGameControllerDDRace*)pSelf->m_pController)->m_CurrentRecord;
+	if (PlayerTime && BestTime)
+	{
+		float Slower = PlayerTime / BestTime - 1.0f;
+		str_format(aBuf, sizeof(aBuf), "%0.2f%% slower than map record, Points: %d", Slower*100.0f, (int)(100.0f*exp(-pSelf->m_MapS*Slower)));
+	}
+	else
+	{
+		str_format(aBuf, sizeof(aBuf), "You have no score on this map");
+	}
+	pSelf->SendChatTarget(pPlayer->GetCID(), aBuf);
+}
+#endif
