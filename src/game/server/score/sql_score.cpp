@@ -578,9 +578,13 @@ bool CSqlScore::SaveScoreThread(CSqlServer* pSqlServer, const CSqlData *pGameDat
 			{
 				str_format(aBuf, sizeof(aBuf), "UPDATE %s_points t1 INNER JOIN (SELECT Name, ROUND(MIN(Time), 3) AS minTime FROM %s_race WHERE Map='%s' GROUP BY Name) t2 ON t1.Name = t2.Name SET t1.Points=t1.Points-FLOOR(100*EXP(-%f*(t2.minTime/%f-1)))+FLOOR(100*EXP(-%f*(t2.minTime/%f-1)));", pSqlServer->GetPrefix(), pSqlServer->GetPrefix(), pData->m_Map.ClrStr(), S, pData->m_CurrentRecord, S, pData->m_Time);
 				pSqlServer->executeSql(aBuf);
+				str_format(aBuf, sizeof(aBuf), "UPDATE %s_catpoints t1 INNER JOIN (SELECT Name, ROUND(MIN(Time), 3) AS minTime FROM %s_race WHERE Map='%s' GROUP BY Name) t2 ON t1.Name = t2.Name SET t1.Points=t1.Points-FLOOR(100*EXP(-%f*(t2.minTime/%f-1)))+FLOOR(100*EXP(-%f*(t2.minTime/%f-1))) WHERE Server='%s';", pSqlServer->GetPrefix(), pSqlServer->GetPrefix(), pData->m_Map.ClrStr(), S, pData->m_CurrentRecord, S, pData->m_Time, aServer);
+				pSqlServer->executeSql(aBuf);
 			}
 			float Record = pData->m_CurrentRecord ? min(pData->m_CurrentRecord, pData->m_Time) : pData->m_Time;
 			str_format(aBuf, sizeof(aBuf), "INSERT INTO %s_points SELECT '%s', -IFNULL(%s, FLOOR(100*EXP(-%f*(%f/%f-1))))+FLOOR(100*EXP(-%f*(%f/%f-1))) ON DUPLICATE KEY UPDATE Points=Points+VALUES(Points);", pSqlServer->GetPrefix(), pData->m_Name.ClrStr(), FirstRank ? "0" : "NULL", S, OldTime, Record, S, pData->m_Time, Record);
+			pSqlServer->executeSql(aBuf);
+			str_format(aBuf, sizeof(aBuf), "INSERT INTO %s_catpoints SELECT '%s', '%s', -IFNULL(%s, FLOOR(100*EXP(-%f*(%f/%f-1))))+FLOOR(100*EXP(-%f*(%f/%f-1))) ON DUPLICATE KEY UPDATE Points=Points+VALUES(Points);", pSqlServer->GetPrefix(), aServer, pData->m_Name.ClrStr(), FirstRank ? "0" : "NULL", S, OldTime, Record, S, pData->m_Time, Record);
 			pSqlServer->executeSql(aBuf);
 		}
 		/*if(!pSqlServer->GetResults()->next())
