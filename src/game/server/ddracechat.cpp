@@ -16,27 +16,13 @@ void CGameContext::ConCredits(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *) pUserData;
 
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
-		"DDNet is run by the DDNet staff (DDNet.tw/staff)");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
-		"Great maps and many ideas from the great community");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
-		"Help and code by eeeee, HMH, east, CookieMichal, Learath2,");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
-		"Savander, laxa, Tobii, BeaR, Wohoo, nuborn, timakro, Shiki,");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
-		"trml, Soreu, hi_leute_gll, Lady Saavik, Chairn, heinrich5991,");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
-		"swick, oy, necropotame, Ryozuki, Redix, d3fault, marcelherd,");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
-		"BannZay, ACTom, SiuFuWong, PathosEthosLogos, TsFreddie,");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
-		"Jupeyy, noby, ChillerDragon, ZombieToad, weez15, z6zzz,");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
-		"Piepow, QingGo, RafaelFF, sctt & others.");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
-		"Based on DDRace by the DDRace developers,");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credits",
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
+		"Unique Race is run by Tezcan, timakro and Ryozuki.");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
+		"It is a mod of DDNet run by the DDNet staff (DDNet.tw/staff),");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
+		"that is based on DDRace by the DDRace developers,");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
 		"which is a mod of Teeworlds by the Teeworlds developers.");
 }
 
