@@ -170,6 +170,7 @@ class CSqlScore: public IScore
 	static bool LoadTeamThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure = false);
 	static bool ProcessRecordQueueThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure = false);
 	static bool InsertRecordQueueThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure = false);
+	static bool ShowMapPointsThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure = false);
 
 public:
 
@@ -200,6 +201,7 @@ public:
 	virtual void LoadTeam(const char* Code, int ClientID);
 	virtual void ProcessRecordQueue();
 	virtual void InsertRecordQueue(const char *PlayerName, float Time);
+	virtual void ShowMapPoints(int ClientID, const char* pName);
 
 	virtual void OnShutdown();
 };

@@ -86,6 +86,7 @@ public:
 	virtual void LoadTeam(const char* Code, int ClientID);
 	virtual void ProcessRecordQueue() {};
 	virtual void InsertRecordQueue(const char *PlayerName, float Time) {};
+	virtual void ShowMapPoints(int ClientID, const char* pName) {};
 
 	virtual void OnShutdown();
 };

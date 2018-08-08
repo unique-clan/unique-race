@@ -1779,4 +1779,57 @@ bool CSqlScore::InsertRecordQueueThread(CSqlServer* pSqlServer, const CSqlData *
 	return false;
 }
 
+void CSqlScore::ShowMapPoints(int ClientID, const char* pName)
+{
+	CSqlScoreData *Tmp = new CSqlScoreData();
+	Tmp->m_ClientID = ClientID;
+	Tmp->m_Name = pName;
+
+	void *MapPointsThread = thread_init(ExecSqlFunc, new CSqlExecData(ShowMapPointsThread, Tmp));
+	thread_detach(MapPointsThread);
+}
+
+bool CSqlScore::ShowMapPointsThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure)
+{
+	const CSqlScoreData *pData = dynamic_cast<const CSqlScoreData *>(pGameData);
+
+	if (HandleFailure)
+		return true;
+
+	try
+	{
+		char aBuf[512];
+		str_format(aBuf, sizeof(aBuf), "SELECT MIN(Time) as Time FROM %s_race WHERE Map = '%s' AND Name = '%s' HAVING Time IS NOT NULL;", pSqlServer->GetPrefix(), pData->m_Map.ClrStr(), pData->m_Name.ClrStr());
+		pSqlServer->executeSqlQuery(aBuf);
+
+		if(pSqlServer->GetResults()->rowsCount() != 1)
+		{
+			str_format(aBuf, sizeof(aBuf), "%s has no score on this map", pData->m_Name.Str());
+		}
+		else
+		{
+			pSqlServer->GetResults()->next();
+			float PlayerTime = (float)pSqlServer->GetResults()->getDouble("Time");
+			float BestTime = ((CGameControllerDDRace*)pData->GameServer()->m_pController)->m_CurrentRecord;
+			float Slower = PlayerTime / BestTime - 1.0f;
+			str_format(aBuf, sizeof(aBuf), "%s is %0.2f%% slower than map record, Points: %d", pData->m_Name.Str(), Slower*100.0f, (int)(100.0f*exp(-pData->GameServer()->m_MapS*Slower)));
+		}
+		pData->GameServer()->SendChatTarget(pData->m_ClientID, aBuf);
+
+		dbg_msg("sql", "Showing map points done");
+		return true;
+	}
+	catch (sql::SQLException &e)
+	{
+		dbg_msg("sql", "MySQL Error: %s", e.what());
+		dbg_msg("sql", "ERROR: Could not show map points");
+	}
+	catch (CGameContextError &e)
+	{
+		dbg_msg("sql", "WARNING: Aborted showing map points due to reload/change of map.");
+		return true;
+	}
+	return false;
+}
+
 #endif

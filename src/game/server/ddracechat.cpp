@@ -1542,18 +1542,17 @@ void CGameContext::ConMapPoints(IConsole::IResult *pResult, void *pUserData)
 	if (!pPlayer)
 		return;
 
-	char aBuf[512];
-	float PlayerTime = pSelf->Score()->PlayerData(pPlayer->GetCID())->m_BestTime;
-	float BestTime = ((CGameControllerDDRace*)pSelf->m_pController)->m_CurrentRecord;
-	if (PlayerTime && BestTime)
-	{
-		float Slower = PlayerTime / BestTime - 1.0f;
-		str_format(aBuf, sizeof(aBuf), "%0.2f%% slower than map record, Points: %d", Slower*100.0f, (int)(100.0f*exp(-pSelf->m_MapS*Slower)));
-	}
+	if(g_Config.m_SvUseSQL)
+		if(pPlayer->m_LastSQLQuery + g_Config.m_SvSqlQueriesDelay * pSelf->Server()->TickSpeed() >= pSelf->Server()->Tick())
+			return;
+
+	if (pResult->NumArguments() > 0)
+		pSelf->Score()->ShowMapPoints(pResult->m_ClientID, pResult->GetString(0));
 	else
-	{
-		str_format(aBuf, sizeof(aBuf), "You have no score on this map");
-	}
-	pSelf->SendChatTarget(pPlayer->GetCID(), aBuf);
+		pSelf->Score()->ShowMapPoints(pResult->m_ClientID,
+				pSelf->Server()->ClientName(pResult->m_ClientID));
+
+	if(g_Config.m_SvUseSQL)
+		pPlayer->m_LastSQLQuery = pSelf->Server()->Tick();
 }
 #endif
