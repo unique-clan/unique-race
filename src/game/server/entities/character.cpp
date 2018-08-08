@@ -1876,6 +1876,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 			return;
 		int Num = Controller->m_TeleOuts[z-1].size();
 		m_Core.m_Pos = Controller->m_TeleOuts[z-1][(!Num)?Num:rand() % Num];
+		m_StartTime += 1.0f - FractionOfTick;
 		if(!g_Config.m_SvTeleportHoldHook)
 		{
 			m_Core.m_HookedPlayer = -1;
@@ -1897,6 +1898,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 			return;
 		int Num = Controller->m_TeleOuts[evilz-1].size();
 		m_Core.m_Pos = Controller->m_TeleOuts[evilz-1][(!Num)?Num:rand() % Num];
+		m_StartTime += 1.0f - FractionOfTick;
 		if (!g_Config.m_SvOldTeleportHook && !g_Config.m_SvOldTeleportWeapons)
 		{
 			m_Core.m_Vel = vec2(0,0);
@@ -1928,6 +1930,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 			{
 				int Num = Controller->m_TeleCheckOuts[k].size();
 				m_Core.m_Pos = Controller->m_TeleCheckOuts[k][(!Num)?Num:rand() % Num];
+				m_StartTime += 1.0f - FractionOfTick;
 				m_Core.m_Vel = vec2(0,0);
 
 				if(!g_Config.m_SvTeleportHoldHook)
@@ -1971,6 +1974,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 			{
 				int Num = Controller->m_TeleCheckOuts[k].size();
 				m_Core.m_Pos = Controller->m_TeleCheckOuts[k][(!Num)?Num:rand() % Num];
+				m_StartTime += 1.0f - FractionOfTick;
 
 				if(!g_Config.m_SvTeleportHoldHook)
 				{
