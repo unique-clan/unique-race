@@ -17,6 +17,8 @@ void CFlag::Snap(int SnappingClient)
 		return;
 	if(m_pCarryingCharacter->GetPlayer()->GetCID() == SnappingClient && !m_pCarryingCharacter->GetPlayer()->m_ShowFlag)
 		return;
+	if(m_pCarryingCharacter->GetPlayer()->GetCID() == SnappingClient && !m_pCarryingCharacter->GetPlayer()->m_ShowOthers && m_pCarryingCharacter->GetPlayer()->IsPaused() && m_pCarryingCharacter->GetPlayer()->m_SpectatorID != SPEC_FREEVIEW)
+		return;
 
 	m_Pos = m_pCarryingCharacter->m_Pos;
 
