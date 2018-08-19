@@ -322,7 +322,7 @@ bool CSqlScore::MapVoteThread(CSqlServer* pSqlServer, const CSqlData *pGameData,
 
 		if(pSqlServer->GetResults()->rowsCount() != 1)
 		{
-			str_format(aBuf, sizeof(aBuf), "No map like \"%s\" found. Try adding a '%%' at the start if you don't know the first character. Example: /map %%castle for \"Out of Castle\"", pData->m_RequestedMap.Str());
+			str_format(aBuf, sizeof(aBuf), "No map like \"%s\" found. Try adding a '%%' at the start if you don't know the first character. Example: /map %%nightmare for run_desert_nightmare", pData->m_RequestedMap.Str());
 			pData->GameServer()->SendChatTarget(pData->m_ClientID, aBuf);
 		}
 		else if(g_Config.m_SvSpectatorVotes == 0 && pPlayer->GetTeam() == TEAM_SPECTATORS)

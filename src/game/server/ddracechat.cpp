@@ -474,7 +474,7 @@ void CGameContext::ConMap(IConsole::IResult *pResult, void *pUserData)
 
 	if (pResult->NumArguments() <= 0)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "map", "Example: /map adr3 to call vote for Adrenaline 3. This means that the map name must start with 'a' and contain the characters 'd', 'r' and '3' in that order");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "map", "Example: /map tez3 to call vote for run_tezcan3. This means that the map name must start with 't' or 'run_t' and contain the characters 'e', 'z' and '3' in that order");
 		return;
 	}
 
