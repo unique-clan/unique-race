@@ -173,6 +173,7 @@ public:
 	bool m_HasFinishScore;
 	bool m_ShowFlag;
 	int m_SortedScore;
+	int m_FastcapSpawnAt;
 
 	int m_ChatScore;
 

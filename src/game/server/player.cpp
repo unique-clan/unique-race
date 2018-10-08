@@ -108,6 +108,7 @@ void CPlayer::Reset()
 	m_SpecTeam = 0;
 	m_NinjaJetpack = false;
 	m_ShowFlag = true;
+	m_FastcapSpawnAt = 1;
 
 	m_Paused = PAUSE_NONE;
 	m_DND = false;
@@ -580,7 +581,7 @@ void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
 
-	if(!GameServer()->m_pController->CanSpawn(m_Team, &SpawnPos))
+	if(!GameServer()->m_pController->CanSpawn(m_Team, g_Config.m_SvFastcap ? m_FastcapSpawnAt : 0, &SpawnPos))
 		return;
 
 	CGameControllerDDRace* Controller = (CGameControllerDDRace*)GameServer()->m_pController;

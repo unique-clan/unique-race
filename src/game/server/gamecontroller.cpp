@@ -44,8 +44,10 @@ IGameController::IGameController(class CGameContext *pGameServer)
 
 	m_CurrentRecord = 0;
 	m_CurrentRecordHolder[0] = 0;
-	m_pRecordFlag = NULL;
 	m_CurrentRecordQueueId = 0;
+	m_pRecordFlagChar = NULL;
+	m_FastcapFlag1 = vec2(0, 0);
+	m_FastcapFlag2 = vec2(0, 0);
 }
 
 IGameController::~IGameController()
@@ -107,7 +109,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type)
 	}
 }
 
-bool IGameController::CanSpawn(int Team, vec2 *pOutPos)
+bool IGameController::CanSpawn(int Team, int SpawnAt, vec2 *pOutPos)
 {
 	CSpawnEval Eval;
 
@@ -130,9 +132,7 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos)
 	}
 	else
 	{*/
-		EvaluateSpawnType(&Eval, 0);
-		EvaluateSpawnType(&Eval, 1);
-		EvaluateSpawnType(&Eval, 2);
+		EvaluateSpawnType(&Eval, SpawnAt);
 	//}
 
 	*pOutPos = Eval.m_Pos;
@@ -355,6 +355,14 @@ bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 	{
 		new CGun(&GameServer()->m_World, Pos, false, false, Layer, Number);
 	}
+	else if(Index == ENTITY_FLAGSTAND_RED)
+	{
+		m_FastcapFlag1 = Pos;
+	}
+	else if(Index == ENTITY_FLAGSTAND_BLUE)
+	{
+		m_FastcapFlag2 = Pos;
+	}
 
 	if(Type != -1)
 	{
@@ -555,10 +563,9 @@ int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *
 	if(Weapon == WEAPON_SELF)
 		pVictim->GetPlayer()->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()*3.0f;*/
 
-	if(m_pRecordFlag && m_pRecordFlag->m_pCarryingCharacter == pVictim)
+	if(m_pRecordFlagChar && m_pRecordFlagChar == pVictim)
 	{
-		GameServer()->m_World.RemoveEntity(m_pRecordFlag);
-		m_pRecordFlag = NULL;
+		m_pRecordFlagChar = NULL;
 	}
 
 	return 0;
@@ -800,6 +807,8 @@ void IGameController::Snap(int SnappingClient)
 			pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_RACETIME;
 		}
 	}
+
+	SnapFlags(SnappingClient);
 }
 
 int IGameController::GetAutoTeam(int NotThisID)
@@ -985,16 +994,84 @@ void IGameController::UpdateRecordFlag()
 	}
 
 	if(RecordChar)
+		m_pRecordFlagChar = RecordChar;
+	else
+		m_pRecordFlagChar = NULL;
+}
+
+int IGameController::SnapRecordFlag(int SnappingClient)
+{
+	CCharacter *pRecordFlagChar = GameServer()->m_pController->m_pRecordFlagChar;
+	if(!pRecordFlagChar)
+		return FLAG_MISSING;
+	if(!GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers && pRecordFlagChar->GetPlayer()->GetCID() != SnappingClient && GameServer()->m_apPlayers[SnappingClient]->GetTeam() != TEAM_SPECTATORS)
+		return FLAG_MISSING;
+	if(pRecordFlagChar->GetPlayer()->GetCID() == SnappingClient && !pRecordFlagChar->GetPlayer()->m_ShowFlag)
+		return FLAG_MISSING;
+	if(pRecordFlagChar->GetPlayer()->GetCID() == SnappingClient && !pRecordFlagChar->GetPlayer()->m_ShowOthers && pRecordFlagChar->GetPlayer()->IsPaused() && pRecordFlagChar->GetPlayer()->m_SpectatorID != SPEC_FREEVIEW)
+		return FLAG_MISSING;
+
+	CNetObj_Flag *pFlag = (CNetObj_Flag *)Server()->SnapNewItem(NETOBJTYPE_FLAG, TEAM_BLUE, sizeof(CNetObj_Flag));
+	if(!pFlag)
+		return FLAG_MISSING;
+	pFlag->m_X = (int)pRecordFlagChar->m_Pos.x;
+	pFlag->m_Y = (int)pRecordFlagChar->m_Pos.y;
+	pFlag->m_Team = TEAM_BLUE;
+
+	return pRecordFlagChar->GetPlayer()->GetCID();
+}
+
+int IGameController::SnapFastcapFlag(int SnappingClient)
+{
+	CCharacter *pChr = NULL;
+	if((GameServer()->m_apPlayers[SnappingClient]->GetTeam() == -1 || GameServer()->m_apPlayers[SnappingClient]->IsPaused())
+				&& GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID != SPEC_FREEVIEW)
+		pChr = GameServer()->m_apPlayers[GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID]->GetCharacter();
+	else if(GameServer()->m_apPlayers[SnappingClient]->GetCharacter())
+		pChr = GameServer()->m_apPlayers[SnappingClient]->GetCharacter();
+
+	bool ShowFlag1 = true;
+	bool ShowFlag2 = true;
+	if(pChr)
 	{
-		if(!m_pRecordFlag) {
-			m_pRecordFlag = new CFlag(&GameServer()->m_World);
-			GameServer()->m_World.InsertEntity(m_pRecordFlag);
-		}
-		m_pRecordFlag->m_pCarryingCharacter = RecordChar;
+		ShowFlag1 = !pChr->m_GotFastcapFlag1;
+		ShowFlag2 = !pChr->m_GotFastcapFlag2;
 	}
-	else if(m_pRecordFlag)
+
+	if(!ShowFlag1 && !ShowFlag2)
+		return FLAG_MISSING;
+
+	vec2 SnapFlagPos;
+	if(ShowFlag1 && ShowFlag2)
 	{
-		GameServer()->m_World.RemoveEntity(m_pRecordFlag);
-		m_pRecordFlag = NULL;
+		if(distance(GameServer()->m_apPlayers[SnappingClient]->m_ViewPos, m_FastcapFlag1)
+		 < distance(GameServer()->m_apPlayers[SnappingClient]->m_ViewPos, m_FastcapFlag2))
+			SnapFlagPos = m_FastcapFlag1;
+		else
+			SnapFlagPos = m_FastcapFlag2;
 	}
+	else if(ShowFlag1)
+		SnapFlagPos = m_FastcapFlag1;
+	else
+		SnapFlagPos = m_FastcapFlag2;
+
+	CNetObj_Flag *pFlag = (CNetObj_Flag *)Server()->SnapNewItem(NETOBJTYPE_FLAG, TEAM_RED, sizeof(CNetObj_Flag));
+	if(!pFlag)
+		return FLAG_MISSING;
+	pFlag->m_X = (int)SnapFlagPos.x;
+	pFlag->m_Y = (int)SnapFlagPos.y;
+	pFlag->m_Team = TEAM_RED;
+
+	return FLAG_ATSTAND;
+}
+
+void IGameController::SnapFlags(int SnappingClient)
+{
+	CNetObj_GameData *pGameDataObj = (CNetObj_GameData *)Server()->SnapNewItem(NETOBJTYPE_GAMEDATA, 0, sizeof(CNetObj_GameData));
+	if(!pGameDataObj)
+		return;
+	pGameDataObj->m_TeamscoreRed = 0;
+	pGameDataObj->m_TeamscoreBlue = 0;
+	pGameDataObj->m_FlagCarrierRed = SnapFastcapFlag(SnappingClient);
+	pGameDataObj->m_FlagCarrierBlue = SnapRecordFlag(SnappingClient);
 }
