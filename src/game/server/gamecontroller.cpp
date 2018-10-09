@@ -1023,6 +1023,9 @@ int IGameController::SnapRecordFlag(int SnappingClient)
 
 int IGameController::SnapFastcapFlag(int SnappingClient)
 {
+	if(!g_Config.m_SvFastcap)
+		return FLAG_MISSING;
+
 	CCharacter *pChr = NULL;
 	if((GameServer()->m_apPlayers[SnappingClient]->GetTeam() == -1 || GameServer()->m_apPlayers[SnappingClient]->IsPaused())
 				&& GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID != SPEC_FREEVIEW)
