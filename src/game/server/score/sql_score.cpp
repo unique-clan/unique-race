@@ -149,7 +149,7 @@ bool CSqlScore::Init(CSqlServer* pSqlServer, const CSqlData *pGameData, bool Han
 			str_copy(((CGameControllerDDRace*)pData->GameServer()->m_pController)->m_CurrentRecordHolder, pSqlServer->GetResults()->getString("Name").c_str(), sizeof(CGameControllerDDRace::m_CurrentRecordHolder));
 			((CGameControllerDDRace*)pData->GameServer()->m_pController)->UpdateRecordFlag();
 		}
-		str_format(aBuf, sizeof(aBuf), "SELECT CASE WHEN Server = 'Short' THEN 5.0 WHEN Server = 'Middle' THEN 3.5 WHEN Server = 'Long' THEN CASE WHEN Stars = 0 THEN 2.0 WHEN Stars = 1 THEN 1.0 WHEN Stars = 2 THEN 0.05 END END as S FROM %s_maps WHERE Map='%s';", pSqlServer->GetPrefix(), pData->m_Map.ClrStr());
+		str_format(aBuf, sizeof(aBuf), "SELECT CASE WHEN Server = 'Short' THEN 5.0 WHEN Server = 'Middle' THEN 3.5 WHEN Server = 'Long' THEN CASE WHEN Stars = 0 THEN 2.0 WHEN Stars = 1 THEN 1.0 WHEN Stars = 2 THEN 0.05 END WHEN Server = 'Fastcap' THEN 5.0 END as S FROM %s_maps WHERE Map='%s';", pSqlServer->GetPrefix(), pData->m_Map.ClrStr());
 		pSqlServer->executeSqlQuery(aBuf);
 		if(pSqlServer->GetResults()->next())
 		{
@@ -574,6 +574,8 @@ bool CSqlScore::SaveScoreThread(CSqlServer* pSqlServer, const CSqlData *pGameDat
 					case 1: S = 1.0f; break;
 					case 2: S = 0.05f; break;
 				}
+			else if(str_comp(aServer, "Fastcap") == 0)
+				S = 5.0f;
 			if(pData->m_Time < pData->m_CurrentRecord)
 			{
 				str_format(aBuf, sizeof(aBuf), "UPDATE %s_points t1 INNER JOIN (SELECT Name, ROUND(MIN(Time), 3) AS minTime FROM %s_race WHERE Map='%s' GROUP BY Name) t2 ON t1.Name = t2.Name SET t1.Points=t1.Points-FLOOR(100*EXP(-%f*(t2.minTime/%f-1)))+FLOOR(100*EXP(-%f*(t2.minTime/%f-1)));", pSqlServer->GetPrefix(), pSqlServer->GetPrefix(), pData->m_Map.ClrStr(), S, pData->m_CurrentRecord, S, pData->m_Time);
