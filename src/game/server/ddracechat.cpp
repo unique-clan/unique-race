@@ -576,6 +576,9 @@ void CGameContext::ConSave(IConsole::IResult *pResult, void *pUserData)
 
 	const char* pCode = pResult->GetString(0);
 	char aCountry[5];
+	pSelf->Score()->SaveTeam(Team, pCode, pResult->m_ClientID, aCountry);
+	return;
+
 	if(str_length(pCode) > 3 && pCode[0] >= 'A' && pCode[0] <= 'Z' && pCode[1] >= 'A'
 		&& pCode[1] <= 'Z' && pCode[2] >= 'A' && pCode[2] <= 'Z')
 	{
