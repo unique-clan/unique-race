@@ -63,6 +63,7 @@ void CPickup::Tick()
 
 			// player picked us up, is someone was hooking us, let them go
 			int RespawnTime = -1;
+			bool Sound = false;
 			switch (m_Type)
 			{
 				case POWERUP_HEALTH:
@@ -79,6 +80,30 @@ void CPickup::Tick()
 						GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, pChr->Teams()->TeamMask(pChr->Team()));
 						RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 					}
+					if(g_Config.m_SvHealthAndAmmo || pChr->Team() == TEAM_SUPER)
+						continue;
+					for(int i = WEAPON_SHOTGUN; i < NUM_WEAPONS; i++)
+					{
+						if(pChr->GetWeaponGot(i))
+						{
+							if(!(pChr->m_FreezeTime && i == WEAPON_NINJA))
+							{
+								pChr->SetWeaponGot(i, false);
+								pChr->SetWeaponAmmo(i, 0);
+								Sound = true;
+							}
+						}
+					}
+					pChr->SetNinjaActivationDir(vec2(0,0));
+					pChr->SetNinjaActivationTick(-500);
+					pChr->SetNinjaCurrentMoveTime(0);
+					if (Sound)
+					{
+						pChr->SetLastWeapon(WEAPON_GUN);
+						GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, pChr->Teams()->TeamMask(pChr->Team()));
+					}
+					if(!pChr->m_FreezeTime && pChr->GetActiveWeapon() >= WEAPON_SHOTGUN)
+						pChr->SetActiveWeapon(WEAPON_HAMMER);
 					break;
 
 				case POWERUP_WEAPON:

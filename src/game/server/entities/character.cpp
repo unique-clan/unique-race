@@ -61,7 +61,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 		m_Armor = 0;
 	else
 		m_Armor = 10;
-	if(g_Config.m_SvFastcap)
+	if(g_Config.m_SvFastcap && !g_Config.m_SvNoWeapons)
 	{
 		GiveWeapon(WEAPON_GRENADE);
 		SetWeapon(WEAPON_GRENADE);
