@@ -475,7 +475,10 @@ bool CSqlScore::MapInfoThread(CSqlServer* pSqlServer, const CSqlData *pGameData,
 				}
 			}
 
-			str_format(aBuf, sizeof(aBuf), "%s by %s on %s%s, finished by %d %s%s", aMap, aMapper, aServer, pReleasedString, finishers, finishers == 1 ? "tee" : "tees", pOwnFinishesString);
+			if(aMapper[0] != '\0')
+				str_format(aBuf, sizeof(aBuf), "%s by %s on %s%s, finished by %d %s%s", aMap, aMapper, aServer, pReleasedString, finishers, finishers == 1 ? "tee" : "tees", pOwnFinishesString);
+			else
+				str_format(aBuf, sizeof(aBuf), "%s on %s%s, finished by %d %s%s", aMap, aServer, pReleasedString, finishers, finishers == 1 ? "tee" : "tees", pOwnFinishesString);
 		}
 
 		pData->GameServer()->SendChatTarget(pData->m_ClientID, aBuf);
