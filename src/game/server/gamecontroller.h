@@ -73,7 +73,7 @@ protected:
 	bool m_ForceBalanced;
 
 public:
-	const char *m_pGameType;
+	char m_pGameType[16];
 
 	//bool IsTeamplay() const;
 	//bool IsGameOver() const { return m_GameOverTick != -1; }

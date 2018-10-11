@@ -2721,6 +2721,7 @@ void CGameContext::OnInit(bool FirstInit)
 	Console()->ExecuteFile(g_Config.m_SvResetFile, -1);
 
 	LoadMapSettings();
+	((CGameControllerDDRace*)m_pController)->SetGameType();
 
 	m_MapBugs.Dump();
 

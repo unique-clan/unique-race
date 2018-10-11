@@ -22,7 +22,7 @@ IGameController::IGameController(class CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
 	m_pServer = m_pGameServer->Server();
-	m_pGameType = "unknown";
+	str_copy(m_pGameType, "unknown", sizeof(m_pGameType));
 
 	//
 	DoWarmup(g_Config.m_SvWarmup);
