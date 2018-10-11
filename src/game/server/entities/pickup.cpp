@@ -75,35 +75,40 @@ void CPickup::Tick()
 					break;
 
 				case POWERUP_ARMOR:
-					if(pChr->IncreaseArmor(1))
+					if(g_Config.m_SvHealthAndAmmo)
 					{
-						GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, pChr->Teams()->TeamMask(pChr->Team()));
-						RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
-					}
-					if(g_Config.m_SvHealthAndAmmo || pChr->Team() == TEAM_SUPER)
-						continue;
-					for(int i = WEAPON_SHOTGUN; i < NUM_WEAPONS; i++)
-					{
-						if(pChr->GetWeaponGot(i))
+						if(pChr->IncreaseArmor(1))
 						{
-							if(!(pChr->m_FreezeTime && i == WEAPON_NINJA))
-							{
-								pChr->SetWeaponGot(i, false);
-								pChr->SetWeaponAmmo(i, 0);
-								Sound = true;
-							}
+							GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, pChr->Teams()->TeamMask(pChr->Team()));
+							RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 						}
 					}
-					pChr->SetNinjaActivationDir(vec2(0,0));
-					pChr->SetNinjaActivationTick(-500);
-					pChr->SetNinjaCurrentMoveTime(0);
-					if (Sound)
+					else
 					{
-						pChr->SetLastWeapon(WEAPON_GUN);
-						GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, pChr->Teams()->TeamMask(pChr->Team()));
+						if(pChr->Team() == TEAM_SUPER) continue;
+						for(int i = WEAPON_SHOTGUN; i < NUM_WEAPONS; i++)
+						{
+							if(pChr->GetWeaponGot(i))
+							{
+								if(!(pChr->m_FreezeTime && i == WEAPON_NINJA))
+								{
+									pChr->SetWeaponGot(i, false);
+									pChr->SetWeaponAmmo(i, 0);
+									Sound = true;
+								}
+							}
+						}
+						pChr->SetNinjaActivationDir(vec2(0,0));
+						pChr->SetNinjaActivationTick(-500);
+						pChr->SetNinjaCurrentMoveTime(0);
+						if (Sound)
+						{
+							pChr->SetLastWeapon(WEAPON_GUN);
+							GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, pChr->Teams()->TeamMask(pChr->Team()));
+						}
+						if(!pChr->m_FreezeTime && pChr->GetActiveWeapon() >= WEAPON_SHOTGUN)
+							pChr->SetActiveWeapon(WEAPON_HAMMER);
 					}
-					if(!pChr->m_FreezeTime && pChr->GetActiveWeapon() >= WEAPON_SHOTGUN)
-						pChr->SetActiveWeapon(WEAPON_HAMMER);
 					break;
 
 				case POWERUP_WEAPON:
