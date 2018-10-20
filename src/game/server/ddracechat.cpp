@@ -1472,6 +1472,82 @@ void CGameContext::ConShowFlag(IConsole::IResult *pResult, void *pUserData)
 	pSelf->m_pController->UpdateRecordFlag();
 }
 
+void CGameContext::ConRed(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *) pUserData;
+	if (!CheckClientID(pResult->m_ClientID))
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
+	if (!pPlayer)
+		return;
+
+	if(!g_Config.m_SvFastcap)
+	{
+		pSelf->SendChatTarget(pPlayer->GetCID(), "You are not playing Fastcap.");
+		return;
+	}
+
+	pPlayer->m_FastcapSpawnAt = 1;
+
+	if(pPlayer->IsPaused())
+		return;
+	if(pPlayer->GetTeam() == TEAM_SPECTATORS)
+	{
+		if(g_Config.m_SvSpamprotection && pPlayer->m_LastSetTeam && pPlayer->m_LastSetTeam + pSelf->Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > pSelf->Server()->Tick())
+			return;
+		pSelf->m_VoteUpdate = true;
+		pPlayer->SetTeam(0);
+	}
+	else
+	{
+		if(pPlayer->m_LastKill && pPlayer->m_LastKill+pSelf->Server()->TickSpeed()/2 > pSelf->Server()->Tick())
+			return;
+		if(!pPlayer->GetCharacter())
+			return;
+		pPlayer->m_LastKill = pSelf->Server()->Tick();
+		pPlayer->KillCharacter(WEAPON_SELF);
+		pPlayer->Respawn();
+	}
+}
+
+void CGameContext::ConBlue(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *) pUserData;
+	if (!CheckClientID(pResult->m_ClientID))
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
+	if (!pPlayer)
+		return;
+
+	if(!g_Config.m_SvFastcap)
+	{
+		pSelf->SendChatTarget(pPlayer->GetCID(), "You are not playing Fastcap.");
+		return;
+	}
+
+	pPlayer->m_FastcapSpawnAt = 2;
+
+	if(pPlayer->IsPaused())
+		return;
+	if(pPlayer->GetTeam() == TEAM_SPECTATORS)
+	{
+		if(g_Config.m_SvSpamprotection && pPlayer->m_LastSetTeam && pPlayer->m_LastSetTeam + pSelf->Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > pSelf->Server()->Tick())
+			return;
+		pSelf->m_VoteUpdate = true;
+		pPlayer->SetTeam(0);
+	}
+	else
+	{
+		if(pPlayer->m_LastKill && pPlayer->m_LastKill+pSelf->Server()->TickSpeed()/2 > pSelf->Server()->Tick())
+			return;
+		if(!pPlayer->GetCharacter())
+			return;
+		pPlayer->m_LastKill = pSelf->Server()->Tick();
+		pPlayer->KillCharacter(WEAPON_SELF);
+		pPlayer->Respawn();
+	}
+}
+
 #if defined(CONF_SQL)
 void CGameContext::ConPoints(IConsole::IResult *pResult, void *pUserData)
 {

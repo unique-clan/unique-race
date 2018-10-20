@@ -351,6 +351,8 @@ private:
 	static void ConRescue(IConsole::IResult *pResult, void *pUserData);
 	static void ConProtectedKill(IConsole::IResult *pResult, void *pUserData);
 	static void ConShowFlag(IConsole::IResult *pResult, void *pUserData);
+	static void ConRed(IConsole::IResult *pResult, void *pUserData);
+	static void ConBlue(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConVoteMute(IConsole::IResult *pResult, void *pUserData);
 	static void ConMute(IConsole::IResult *pResult, void *pUserData);
