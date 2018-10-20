@@ -164,11 +164,20 @@ bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 
 
 	if(Index == ENTITY_SPAWN)
-		m_aaSpawnPoints[0][m_aNumSpawnPoints[0]++] = Pos;
+	{
+		if(!m_aNumSpawnPoints[0])
+			m_aaSpawnPoints[0][m_aNumSpawnPoints[0]++] = Pos;
+	}
 	else if(Index == ENTITY_SPAWN_RED)
-		m_aaSpawnPoints[1][m_aNumSpawnPoints[1]++] = Pos;
+	{
+		if(!m_aNumSpawnPoints[1])
+			m_aaSpawnPoints[1][m_aNumSpawnPoints[1]++] = Pos;
+	}
 	else if(Index == ENTITY_SPAWN_BLUE)
-		m_aaSpawnPoints[2][m_aNumSpawnPoints[2]++] = Pos;
+	{
+		if(!m_aNumSpawnPoints[2])
+			m_aaSpawnPoints[2][m_aNumSpawnPoints[2]++] = Pos;
+	}
 
 	else if(Index == ENTITY_DOOR)
 	{
@@ -366,6 +375,13 @@ bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 	{
 		m_FastcapFlag2 = Pos;
 	}
+
+	if(Type == POWERUP_WEAPON && SubType != WEAPON_GRENADE &&
+		  (str_comp(g_Config.m_SvMap, "ctf1") == 0 || str_comp(g_Config.m_SvMap, "ctf2") == 0
+		|| str_comp(g_Config.m_SvMap, "ctf3") == 0 || str_comp(g_Config.m_SvMap, "ctf4") == 0
+		|| str_comp(g_Config.m_SvMap, "ctf5") == 0 || str_comp(g_Config.m_SvMap, "ctf6") == 0
+		|| str_comp(g_Config.m_SvMap, "ctf7") == 0))
+		return false;
 
 	if(Type != -1)
 	{
