@@ -376,11 +376,14 @@ bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 		m_FastcapFlag2 = Pos;
 	}
 
-	if(Type == POWERUP_WEAPON && SubType != WEAPON_GRENADE &&
-		  (str_comp(g_Config.m_SvMap, "ctf1") == 0 || str_comp(g_Config.m_SvMap, "ctf2") == 0
-		|| str_comp(g_Config.m_SvMap, "ctf3") == 0 || str_comp(g_Config.m_SvMap, "ctf4") == 0
-		|| str_comp(g_Config.m_SvMap, "ctf5") == 0 || str_comp(g_Config.m_SvMap, "ctf6") == 0
-		|| str_comp(g_Config.m_SvMap, "ctf7") == 0))
+	if(((Type == POWERUP_WEAPON && SubType != WEAPON_GRENADE) || Type == POWERUP_NINJA) &&
+		  (str_comp(g_Config.m_SvMap, "ctf1") == 0 || str_comp(g_Config.m_SvMap, "ctf1_no_wpns") == 0
+		|| str_comp(g_Config.m_SvMap, "ctf2") == 0 || str_comp(g_Config.m_SvMap, "ctf2_no_wpns") == 0
+		|| str_comp(g_Config.m_SvMap, "ctf3") == 0 || str_comp(g_Config.m_SvMap, "ctf3_no_wpns") == 0
+		|| str_comp(g_Config.m_SvMap, "ctf4") == 0 || str_comp(g_Config.m_SvMap, "ctf4_no_wpns") == 0
+		|| str_comp(g_Config.m_SvMap, "ctf5") == 0 || str_comp(g_Config.m_SvMap, "ctf5_no_wpns") == 0
+		|| str_comp(g_Config.m_SvMap, "ctf6") == 0 || str_comp(g_Config.m_SvMap, "ctf6_no_wpns") == 0
+		|| str_comp(g_Config.m_SvMap, "ctf7") == 0 || str_comp(g_Config.m_SvMap, "ctf7_no_wpns") == 0))
 		return false;
 
 	if(Type != -1)
