@@ -259,6 +259,7 @@ public:
 	bool m_ShowTimesInNames;
 	bool m_GotFastcapFlag1;
 	bool m_GotFastcapFlag2;
+	bool m_HasFiredFirst;
 
 	// Setters/Getters because i don't want to modify vanilla vars access modifiers
 	int GetLastWeapon() { return m_LastWeapon; };

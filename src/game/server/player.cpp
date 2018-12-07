@@ -109,6 +109,7 @@ void CPlayer::Reset()
 	m_NinjaJetpack = false;
 	m_ShowFlag = true;
 	m_FastcapSpawnAt = 1;
+	m_LastDeathWeapon = 0;
 
 	m_Paused = PAUSE_NONE;
 	m_DND = false;

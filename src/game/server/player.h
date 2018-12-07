@@ -174,6 +174,7 @@ public:
 	bool m_ShowFlag;
 	int m_SortedScore;
 	int m_FastcapSpawnAt;
+	int m_LastDeathWeapon;
 
 	int m_ChatScore;
 
