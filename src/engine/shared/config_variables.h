@@ -337,6 +337,7 @@ MACRO_CONFIG_INT(SvPlasmaRange, sv_plasma_range, 700, 1, 99999, CFGFLAG_SERVER|C
 MACRO_CONFIG_INT(SvPlasmaPerSec, sv_plasma_per_sec, 3, 0, 50, CFGFLAG_SERVER|CFGFLAG_GAME, "How many shots does the plasma gun fire per seconds")
 MACRO_CONFIG_INT(SvDraggerRange, sv_dragger_range, 700, 1, 99999, CFGFLAG_SERVER|CFGFLAG_GAME, "How far will the dragger track tees")
 MACRO_CONFIG_INT(SvHealthAndAmmo, sv_health_and_ammo, 0, 0, 1, CFGFLAG_SERVER|CFGFLAG_GAME, "Wether tees take damage and have limited ammo")
+MACRO_CONFIG_INT(SvKillGrenades, sv_kill_grenades, 0, 0, 1, CFGFLAG_SERVER|CFGFLAG_GAME, "Kill grenades on player death")
 MACRO_CONFIG_INT(SvFastcap, sv_fastcap, 0, 0, 1, CFGFLAG_SERVER|CFGFLAG_GAME, "Wether fastcap mode is turned on")
 MACRO_CONFIG_INT(SvNoWeapons, sv_no_weapons, 0, 0, 1, CFGFLAG_SERVER|CFGFLAG_GAME, "Omit grenade pickups for fastcap")
 MACRO_CONFIG_INT(SvVotePause, sv_vote_pause, 1, 0, 1, CFGFLAG_SERVER, "Allow voting to pause players (instead of moving to spectators)")
