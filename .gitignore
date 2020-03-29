@@ -32,6 +32,7 @@ ninja_package
 pack_*/
 rules.ninja
 testrunner\[1\]_include.cmake
+autoexec.cfg
 
 # Ignore all the generated executables without extensions (for non-Windows
 # systems).
