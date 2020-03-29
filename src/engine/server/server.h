@@ -179,6 +179,8 @@ public:
 		// DNSBL
 		int m_DnsblState;
 		std::shared_ptr<CHostLookup> m_pDnsblLookup;
+
+		bool m_Sixup;
 	};
 
 	CClient m_aClients[MAX_CLIENTS];
@@ -266,7 +268,7 @@ public:
 
 	void DoSnapshot();
 
-	static int NewClientCallback(int ClientID, void *pUser);
+	static int NewClientCallback(int ClientID, void *pUser, bool Sixup);
 	static int NewClientNoAuthCallback(int ClientID, void *pUser);
 	static int DelClientCallback(int ClientID, const char *pReason, void *pUser);
 
@@ -385,6 +387,8 @@ public:
 
 	bool ErrorShutdown() const { return m_aErrorShutdownReason[0] != 0; }
 	void SetErrorShutdown(const char *pReason);
+
+	bool IsSixup(int ClientID) { return m_aClients[ClientID].m_Sixup; }
 
 #ifdef CONF_FAMILY_UNIX
 	enum CONN_LOGGING_CMD

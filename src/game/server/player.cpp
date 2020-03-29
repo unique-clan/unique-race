@@ -297,38 +297,19 @@ void CPlayer::Snap(int SnappingClient)
 		pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
 	}
 
-	CNetObj_PlayerInfo *pPlayerInfo = static_cast<CNetObj_PlayerInfo *>(Server()->SnapNewItem(NETOBJTYPE_PLAYERINFO, id, sizeof(CNetObj_PlayerInfo)));
+	int Size = Server()->IsSixup(SnappingClient) ? 3*4 : sizeof(CNetObj_PlayerInfo);
+	CNetObj_PlayerInfo *pPlayerInfo = static_cast<CNetObj_PlayerInfo *>(Server()->SnapNewItem(NETOBJTYPE_PLAYERINFO, id, Size));
 	if(!pPlayerInfo)
 		return;
 
-	pPlayerInfo->m_Latency = SnappingClient == -1 ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aActLatency[m_ClientID];
-	pPlayerInfo->m_Local = 0;
-	pPlayerInfo->m_ClientID = id;
-	pPlayerInfo->m_Score = abs(m_Score) * -1;
-	pPlayerInfo->m_Team = (m_ClientVersion < VERSION_DDNET_OLD || m_Paused != PAUSE_PAUSED || m_ClientID != SnappingClient) && m_Paused < PAUSE_SPEC ? m_Team : TEAM_SPECTATORS;
-
-	if(m_ClientID == SnappingClient && m_Paused == PAUSE_PAUSED && m_ClientVersion < VERSION_DDNET_OLD)
-		pPlayerInfo->m_Team = TEAM_SPECTATORS;
-
-	if(m_ClientID == SnappingClient && (m_Paused != PAUSE_PAUSED || m_ClientVersion >= VERSION_DDNET_OLD))
-		pPlayerInfo->m_Local = 1;
-
-	if(m_ClientID == SnappingClient && (m_Team == TEAM_SPECTATORS || m_Paused))
-	{
-		CNetObj_SpectatorInfo *pSpectatorInfo = static_cast<CNetObj_SpectatorInfo *>(Server()->SnapNewItem(NETOBJTYPE_SPECTATORINFO, m_ClientID, sizeof(CNetObj_SpectatorInfo)));
-		if(!pSpectatorInfo)
-			return;
-
-		pSpectatorInfo->m_SpectatorID = m_SpectatorID;
-		pSpectatorInfo->m_X = m_ViewPos.x;
-		pSpectatorInfo->m_Y = m_ViewPos.y;
-	}
+	int Latency = SnappingClient == -1 ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aActLatency[m_ClientID];
+	int Score = abs(m_Score) * -1;
 
 	// send 0 if times of others are not shown
 	if(SnappingClient != m_ClientID && g_Config.m_SvHideScore)
-		pPlayerInfo->m_Score = -9999;
+		Score = -9999;
 	else
-		pPlayerInfo->m_Score = abs(m_Score) * -1;
+		Score = abs(m_Score) * -1;
 
 	if(m_Team != TEAM_SPECTATORS && GameServer()->m_apPlayers[SnappingClient] && GameServer()->m_apPlayers[SnappingClient]->GetCharacter() && GameServer()->m_apPlayers[SnappingClient]->GetCharacter()->m_ShowTimesInNames)
 	{
@@ -353,7 +334,39 @@ void CPlayer::Snap(int SnappingClient)
 			StrToInts(&pClientInfo->m_Name0, 4, aBuf);
 		}
 		GameServer()->SortPlayerScores();
-		pPlayerInfo->m_Score = m_SortedScore;
+		Score = m_SortedScore;
+	}
+
+	if(Server()->IsSixup(SnappingClient))
+	{
+		((int*)pPlayerInfo)[0] = 0; // m_PlayerFlags
+		((int*)pPlayerInfo)[1] = Score;
+		((int*)pPlayerInfo)[2] = Latency;
+	}
+	else
+	{
+		pPlayerInfo->m_Latency = Latency;
+		pPlayerInfo->m_Local = 0;
+		pPlayerInfo->m_ClientID = id;
+		pPlayerInfo->m_Score = Score;
+		pPlayerInfo->m_Team = (m_ClientVersion < VERSION_DDNET_OLD || m_Paused != PAUSE_PAUSED || m_ClientID != SnappingClient) && m_Paused < PAUSE_SPEC ? m_Team : TEAM_SPECTATORS;
+
+		if(m_ClientID == SnappingClient && m_Paused == PAUSE_PAUSED && m_ClientVersion < VERSION_DDNET_OLD)
+			pPlayerInfo->m_Team = TEAM_SPECTATORS;
+
+		if(m_ClientID == SnappingClient && (m_Paused != PAUSE_PAUSED || m_ClientVersion >= VERSION_DDNET_OLD))
+			pPlayerInfo->m_Local = 1;
+	}
+
+	if(m_ClientID == SnappingClient && (m_Team == TEAM_SPECTATORS || m_Paused))
+	{
+		CNetObj_SpectatorInfo *pSpectatorInfo = static_cast<CNetObj_SpectatorInfo *>(Server()->SnapNewItem(NETOBJTYPE_SPECTATORINFO, m_ClientID, sizeof(CNetObj_SpectatorInfo)));
+		if(!pSpectatorInfo)
+			return;
+
+		pSpectatorInfo->m_SpectatorID = m_SpectatorID;
+		pSpectatorInfo->m_X = m_ViewPos.x;
+		pSpectatorInfo->m_Y = m_ViewPos.y;
 	}
 }
 

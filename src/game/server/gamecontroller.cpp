@@ -804,6 +804,17 @@ void IGameController::Snap(int SnappingClient)
 		}
 	}
 
+	if(Server()->IsSixup(SnappingClient))
+	{
+		int *pGameData = (int*)Server()->SnapNewItem(6 + 24, 0, 3*4); // NETOBJTYPE_GAMEDATA
+		if(!pGameData)
+			return;
+
+		pGameData[0] = m_RoundStartTick;
+		pGameData[1] = 0; // m_GameStateFlags
+		pGameData[2] = 0; // m_GameStateEndTick
+	}
+
 	SnapFlags(SnappingClient);
 }
 
