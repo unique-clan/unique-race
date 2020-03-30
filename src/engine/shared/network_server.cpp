@@ -44,6 +44,10 @@ unsigned char g_aDummyMapData[] = {
 
 static unsigned char MsgTypeFromSixup(unsigned char Byte)
 {
+	if(Byte&0x40) // negative msg id
+		return 0;
+	Byte = ((Byte&0x80)>>1) | (Byte&0x3f);
+
 	unsigned char Six = Byte>>1;
 	unsigned char Msg;
 	if (Byte&1)
@@ -67,6 +71,8 @@ static unsigned char MsgTypeFromSixup(unsigned char Byte)
 			Msg = NETMSGTYPE_CL_KILL;
 		else if(Six >= 30 && Six <= 32)
 			Msg = NETMSGTYPE_CL_EMOTICON + Six - 30;
+		else if(Six == 34) // NETMSGTYPE_CL_SKINCHANGE
+			Msg = 27;
 		else
 		{
 			dbg_msg("net", "DROP recv msg %d", Six);
@@ -117,7 +123,9 @@ static unsigned char MsgTypeToSixup(unsigned char Byte)
 		}
 		//dbg_msg("net", "send msg %d -> %d", Msg, Six);
 	}
-	return (Six<<1) | (Byte&1);
+
+	Byte = (Six<<1) | (Byte&1);
+	return ((Byte&0x40)<<1) | (Byte&0x3f);
 }
 
 static SECURITY_TOKEN ToSecurityToken(const unsigned char *pData)

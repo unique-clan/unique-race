@@ -142,8 +142,8 @@ public:
 
 	// voting
 	void StartVote(const char *pDesc, const char *pCommand, const char *pReason);
-	void EndVote();
-	void SendVoteSet(int ClientID);
+	void EndVote(int Type, bool Force);
+	void SendVoteSet(int ClientID, int Type);
 	void SendVoteStatus(int ClientID, int Total, int Yes, int No);
 	void AbortVoteKickOnDisconnect(int ClientID);
 
@@ -196,7 +196,7 @@ public:
 	void CallVote(int ClientID, const char *aDesc, const char *aCmd, const char *pReason, const char *aChatmsg);
 	void SendChatTarget(int To, const char *pText);
 	void SendChatTeam(int Team, const char *pText);
-	void SendChat(int ClientID, int Team, const char *pText, int SpamProtectionClientID = -1);
+	void SendChat(int ClientID, int Team, const char *pText, int SpamProtectionClientID = -1, bool NoSixup = false);
 	void SendEmoticon(int ClientID, int Emoticon);
 	void SendWeaponPickup(int ClientID, int Weapon);
 	void SendBroadcast(const char *pText, int ClientID, bool IsImportant = true);
@@ -258,6 +258,8 @@ public:
 	// Returns true if someone is actively moderating.
 	bool PlayerModerating();
 	void ForceVote(int EnforcerID, bool Success);
+
+	void SendSixupSkinChange(int Changer);
 
 private:
 

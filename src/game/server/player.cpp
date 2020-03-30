@@ -283,19 +283,10 @@ void CPlayer::Snap(int SnappingClient)
 	StrToInts(&pClientInfo->m_Name0, 4, Server()->ClientName(m_ClientID));
 	StrToInts(&pClientInfo->m_Clan0, 3, Server()->ClientClan(m_ClientID));
 	pClientInfo->m_Country = Server()->ClientCountry(m_ClientID);
-	if (m_StolenSkin && SnappingClient != m_ClientID && g_Config.m_SvSkinStealAction == 1)
-	{
-		StrToInts(&pClientInfo->m_Skin0, 6, "pinky");
-		pClientInfo->m_UseCustomColor = 0;
-		pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
-		pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
-	} else
-	{
-		StrToInts(&pClientInfo->m_Skin0, 6, m_TeeInfos.m_SkinName);
-		pClientInfo->m_UseCustomColor = m_TeeInfos.m_UseCustomColor;
-		pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
-		pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
-	}
+	StrToInts(&pClientInfo->m_Skin0, 6, m_TeeInfos.m_SkinName);
+	pClientInfo->m_UseCustomColor = m_TeeInfos.m_UseCustomColor;
+	pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
+	pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
 
 	int Size = Server()->IsSixup(SnappingClient) ? 3*4 : sizeof(CNetObj_PlayerInfo);
 	CNetObj_PlayerInfo *pPlayerInfo = static_cast<CNetObj_PlayerInfo *>(Server()->SnapNewItem(NETOBJTYPE_PLAYERINFO, id, Size));
@@ -311,7 +302,7 @@ void CPlayer::Snap(int SnappingClient)
 	else
 		Score = abs(m_Score) * -1;
 
-	if(m_Team != TEAM_SPECTATORS && GameServer()->m_apPlayers[SnappingClient] && GameServer()->m_apPlayers[SnappingClient]->GetCharacter() && GameServer()->m_apPlayers[SnappingClient]->GetCharacter()->m_ShowTimesInNames)
+	if(!Server()->IsSixup(SnappingClient) && m_Team != TEAM_SPECTATORS && GameServer()->m_apPlayers[SnappingClient] && GameServer()->m_apPlayers[SnappingClient]->GetCharacter() && GameServer()->m_apPlayers[SnappingClient]->GetCharacter()->m_ShowTimesInNames)
 	{
 		CPlayerData *pData = GameServer()->Score()->PlayerData(GetCID());
 		if(pData->m_BestTime)
@@ -339,7 +330,7 @@ void CPlayer::Snap(int SnappingClient)
 
 	if(Server()->IsSixup(SnappingClient))
 	{
-		((int*)pPlayerInfo)[0] = 0; // m_PlayerFlags
+		((int*)pPlayerInfo)[0] = m_PlayerFlags&PLAYERFLAG_CHATTING ? (1<<1) : 0;
 		((int*)pPlayerInfo)[1] = Score;
 		((int*)pPlayerInfo)[2] = Latency;
 	}
@@ -360,13 +351,24 @@ void CPlayer::Snap(int SnappingClient)
 
 	if(m_ClientID == SnappingClient && (m_Team == TEAM_SPECTATORS || m_Paused))
 	{
-		CNetObj_SpectatorInfo *pSpectatorInfo = static_cast<CNetObj_SpectatorInfo *>(Server()->SnapNewItem(NETOBJTYPE_SPECTATORINFO, m_ClientID, sizeof(CNetObj_SpectatorInfo)));
+		Size = Server()->IsSixup(SnappingClient) ? 4*4 : sizeof(CNetObj_SpectatorInfo);
+		CNetObj_SpectatorInfo *pSpectatorInfo = static_cast<CNetObj_SpectatorInfo *>(Server()->SnapNewItem(NETOBJTYPE_SPECTATORINFO, m_ClientID, Size));
 		if(!pSpectatorInfo)
 			return;
 
-		pSpectatorInfo->m_SpectatorID = m_SpectatorID;
-		pSpectatorInfo->m_X = m_ViewPos.x;
-		pSpectatorInfo->m_Y = m_ViewPos.y;
+		if(Server()->IsSixup(SnappingClient))
+		{
+			((int*)pSpectatorInfo)[0] = m_SpectatorID == SPEC_FREEVIEW ? 0 : 1; // m_SpecMode
+			((int*)pSpectatorInfo)[1] = m_SpectatorID;
+			((int*)pSpectatorInfo)[2] = m_ViewPos.x;
+			((int*)pSpectatorInfo)[3] = m_ViewPos.y;
+		}
+		else
+		{
+			pSpectatorInfo->m_SpectatorID = m_SpectatorID;
+			pSpectatorInfo->m_X = m_ViewPos.x;
+			pSpectatorInfo->m_Y = m_ViewPos.y;
+		}
 	}
 }
 
@@ -375,6 +377,8 @@ void CPlayer::FakeSnap()
 	// This is problematic when it's sent before we know whether it's a non-64-player-client
 	// Then we can't spectate players at the start
 
+	if(Server()->IsSixup(m_ClientID))
+		return;
 	if(m_ClientVersion >= VERSION_DDNET_OLD)
 		return;
 
@@ -422,7 +426,7 @@ void CPlayer::OnDisconnect(const char *pReason)
 			str_format(aBuf, sizeof(aBuf), "'%s' has left the game (%s)", Server()->ClientName(m_ClientID), pReason);
 		else
 			str_format(aBuf, sizeof(aBuf), "'%s' has left the game", Server()->ClientName(m_ClientID));
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, true);
 
 		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", m_ClientID, Server()->ClientName(m_ClientID));
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
@@ -477,11 +481,11 @@ void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 		if(m_pCharacter)
 			m_pCharacter->ResetInput();
 
-		m_PlayerFlags = NewInput->m_PlayerFlags;
+		m_PlayerFlags = Server()->IsSixup(m_ClientID) ? ((NewInput->m_PlayerFlags<<1)&(PLAYERFLAG_CHATTING|PLAYERFLAG_SCOREBOARD)) : NewInput->m_PlayerFlags;
 		return;
 	}
 
-	m_PlayerFlags = NewInput->m_PlayerFlags;
+	m_PlayerFlags = Server()->IsSixup(m_ClientID) ? ((NewInput->m_PlayerFlags<<1)&(PLAYERFLAG_CHATTING|PLAYERFLAG_SCOREBOARD)) : NewInput->m_PlayerFlags;
 
 	if(m_pCharacter)
 	{
@@ -560,7 +564,7 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	if(DoChatMsg)
 	{
 		str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(m_ClientID), GameServer()->m_pController->GetTeamName(Team));
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, -1, true);
 	}
 
 	if(Team == TEAM_SPECTATORS)
@@ -579,6 +583,19 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
 	//GameServer()->m_pController->OnPlayerInfoChange(GameServer()->m_apPlayers[m_ClientID]);
+
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if(Server()->ClientIngame(i) && Server()->IsSixup(i))
+		{
+			CMsgPacker Msg(4 + 24); // NETMSGTYPE_SV_TEAM
+			Msg.AddInt(m_ClientID);
+			Msg.AddInt(m_Team);
+			Msg.AddInt(!DoChatMsg); // m_Silent
+			Msg.AddInt(m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay); // m_CooldownTick
+			Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
+		}
+	}
 
 	if(Team == TEAM_SPECTATORS)
 	{
@@ -819,4 +836,122 @@ void CPlayer::SpectatePlayerName(const char *pName)
 			return;
 		}
 	}
+}
+
+struct StdSkin
+{
+	char m_SkinName[64];
+	char m_apSkinPartNames[6][24];
+	bool m_aUseCustomColors[6];
+	int m_aSkinPartColors[6];
+};
+
+static StdSkin g_StdSkins[] = {
+{"default",{"standard","","","standard","standard","standard"},{true,false,false,true,true,false},{1798004,0,0,1799582,1869630,0}},
+{"bluekitty",{"kitty","whisker","","standard","standard","standard"},{true,true,false,true,true,false},{8681144,-8229413,0,7885547,7885547,0}},
+{"bluestripe",{"standard","stripes","","standard","standard","standard"},{true,false,false,true,true,false},{10187898,0,0,750848,1944919,0}},
+{"brownbear",{"bear","bear","hair","standard","standard","standard"},{true,true,false,true,true,false},{1082745,-15634776,0,1082745,1147174,0}},
+{"cammo",{"standard","cammo2","","standard","standard","standard"},{true,true,false,true,true,false},{5334342,-11771603,0,750848,1944919,0}},
+{"cammostripes",{"standard","cammostripes","","standard","standard","standard"},{true,true,false,true,true,false},{5334342,-14840320,0,750848,1944919,0}},
+{"coala",{"koala","twinbelly","","standard","standard","standard"},{true,true,false,true,true,false},{184,-15397662,0,184,9765959,0}},
+{"limekitty",{"kitty","whisker","","standard","standard","standard"},{true,true,false,true,true,false},{4612803,-12229920,0,3827951,3827951,0}},
+{"pinky",{"standard","whisker","","standard","standard","standard"},{true,true,false,true,true,false},{15911355,-801066,0,15043034,15043034,0}},
+{"redbopp",{"standard","donny","unibop","standard","standard","standard"},{true,true,true,true,true,false},{16177260,-16590390,16177260,16177260,7624169,0}},
+{"redstripe",{"standard","stripe","","standard","standard","standard"},{true,false,false,true,true,false},{16307835,0,0,184,9765959,0}},
+{"saddo",{"standard","saddo","","standard","standard","standard"},{true,true,false,true,true,false},{7171455,-9685436,0,3640746,5792119,0}},
+{"toptri",{"standard","toptri","","standard","standard","standard"},{true,false,false,true,true,false},{6119331,0,0,3640746,5792119,0}},
+{"twinbop",{"standard","duodonny","twinbopp","standard","standard","standard"},{true,true,true,true,true,false},{15310519,-1600806,15310519,15310519,37600,0}},
+{"twintri",{"standard","twintri","","standard","standard","standard"},{true,true,false,true,true,false},{3447932,-14098717,0,185,9634888,0}},
+{"warpaint",{"standard","warpaint","","standard","standard","standard"},{true,false,false,true,true,false},{1944919,0,0,750337,1944919,0}}};
+
+void CPlayer::SkinToSixup()
+{
+	// reset to default skin
+	for(int p = 0; p < 6; p++)
+	{
+		str_copy(m_TeeInfos.m_apSkinPartNames[p], g_StdSkins[0].m_apSkinPartNames[p], 24);
+		m_TeeInfos.m_aUseCustomColors[p] = g_StdSkins[0].m_aUseCustomColors[p];
+		m_TeeInfos.m_aSkinPartColors[p] = g_StdSkins[0].m_aSkinPartColors[p];
+	}
+
+	// check for std skin
+	for(int s = 0; s < 16; s++)
+	{
+		if(!str_comp(m_TeeInfos.m_SkinName, g_StdSkins[s].m_SkinName))
+		{
+			for(int p = 0; p < 6; p++)
+			{
+				str_copy(m_TeeInfos.m_apSkinPartNames[p], g_StdSkins[s].m_apSkinPartNames[p], 24);
+				m_TeeInfos.m_aUseCustomColors[p] = g_StdSkins[s].m_aUseCustomColors[p];
+				m_TeeInfos.m_aSkinPartColors[p] = g_StdSkins[s].m_aSkinPartColors[p];
+			}
+			break;
+		}
+	}
+
+	if(m_TeeInfos.m_UseCustomColor)
+	{
+		m_TeeInfos.m_aUseCustomColors[0] = true;
+		m_TeeInfos.m_aUseCustomColors[1] = true;
+		m_TeeInfos.m_aUseCustomColors[2] = true;
+		m_TeeInfos.m_aUseCustomColors[3] = true;
+		m_TeeInfos.m_aUseCustomColors[4] = true;
+		m_TeeInfos.m_aSkinPartColors[0] = m_TeeInfos.m_ColorBody;
+		m_TeeInfos.m_aSkinPartColors[1] = 0x22FFFFFF;
+		m_TeeInfos.m_aSkinPartColors[2] = m_TeeInfos.m_ColorBody;
+		m_TeeInfos.m_aSkinPartColors[3] = m_TeeInfos.m_ColorBody;
+		m_TeeInfos.m_aSkinPartColors[4] = m_TeeInfos.m_ColorFeet;
+	}
+}
+
+void CPlayer::SkinFromSixup()
+{
+	// reset to default skin
+	str_copy(m_TeeInfos.m_SkinName, "default", sizeof(m_TeeInfos.m_SkinName));
+	m_TeeInfos.m_UseCustomColor = false;
+	m_TeeInfos.m_ColorBody = 0;
+	m_TeeInfos.m_ColorFeet = 0;
+
+	// check for std skin
+	for(int s = 0; s < 16; s++)
+	{
+		bool match = true;
+		for(int p = 0; p < 6; p++)
+		{
+			if(str_comp(m_TeeInfos.m_apSkinPartNames[p], g_StdSkins[s].m_apSkinPartNames[p])
+					|| m_TeeInfos.m_aUseCustomColors[p] != g_StdSkins[s].m_aUseCustomColors[p]
+					|| (m_TeeInfos.m_aUseCustomColors[p] && m_TeeInfos.m_aSkinPartColors[p] != g_StdSkins[s].m_aSkinPartColors[p]))
+			{
+				match = false;
+				break;
+			}
+		}
+		if(match)
+		{
+			str_copy(m_TeeInfos.m_SkinName, g_StdSkins[s].m_SkinName, sizeof(m_TeeInfos.m_SkinName));
+			return;
+		}
+	}
+
+	// find closest match
+	int best_skin;
+	int best_matches = -1;
+	for(int s = 0; s < 16; s++)
+	{
+		int matches = 0;
+		for(int p = 0; p < 3; p++)
+			if(str_comp(m_TeeInfos.m_apSkinPartNames[p], g_StdSkins[s].m_apSkinPartNames[p]) == 0)
+				matches++;
+
+		if(matches > best_matches)
+		{
+			best_matches = matches;
+			best_skin = s;
+		}
+	}
+
+	str_copy(m_TeeInfos.m_SkinName, g_StdSkins[best_skin].m_SkinName, sizeof(m_TeeInfos.m_SkinName));
+	m_TeeInfos.m_UseCustomColor = true;
+	m_TeeInfos.m_ColorBody = m_TeeInfos.m_aUseCustomColors[0] ? m_TeeInfos.m_aSkinPartColors[0] : 255;
+	m_TeeInfos.m_ColorFeet = m_TeeInfos.m_aUseCustomColors[4] ? m_TeeInfos.m_aSkinPartColors[4] : 255;
 }

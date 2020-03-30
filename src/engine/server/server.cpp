@@ -257,7 +257,6 @@ void CServer::CClient::Reset()
 	m_SnapRate = CClient::SNAPRATE_INIT;
 	m_Score = 0;
 	m_NextMapChunk = 0;
-	m_Sixup = false;
 }
 
 CServer::CServer()
@@ -595,12 +594,14 @@ int CServer::SendMsgEx(CMsgPacker *pMsg, int Flags, int ClientID, bool System)
 		if(ClientID == -1)
 		{
 			// broadcast
+			unsigned char MsgType = *(unsigned char*)Packet.m_pData;
 			int i;
 			for(i = 0; i < MAX_CLIENTS; i++)
 				if(m_aClients[i].m_State == CClient::STATE_INGAME)
 				{
 					Packet.m_ClientID = i;
 					m_NetServer.Send(&Packet);
+					*(unsigned char*)Packet.m_pData = MsgType;
 				}
 		}
 		else
@@ -702,6 +703,8 @@ void CServer::DoSnapshot()
 			}
 
 			// create delta
+			m_SnapshotDelta.SetStaticsize(21, m_aClients[i].m_Sixup);
+			m_SnapshotDelta.SetStaticsize(22, m_aClients[i].m_Sixup);
 			DeltaSize = m_SnapshotDelta.CreateDelta(pDeltashot, pData, aDeltaData);
 
 			if(DeltaSize)
@@ -891,6 +894,7 @@ int CServer::DelClientCallback(int ClientID, const char *pReason, void *pUser)
 	pThis->m_aClients[ClientID].m_pRconCmdToSend = 0;
 	pThis->m_aClients[ClientID].m_Traffic = 0;
 	pThis->m_aClients[ClientID].m_TrafficSince = 0;
+	pThis->m_aClients[ClientID].m_Sixup = false;
 	pThis->m_aPrevStates[ClientID] = CClient::STATE_EMPTY;
 	pThis->m_aClients[ClientID].m_Snapshots.PurgeAll();
 

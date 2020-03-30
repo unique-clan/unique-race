@@ -764,7 +764,7 @@ void IGameController::Snap(int SnappingClient)
 	if(!pGameInfoObj)
 		return;
 
-	pGameInfoObj->m_GameFlags = m_GameFlags;
+	pGameInfoObj->m_GameFlags = GAMEFLAG_FLAGS;
 	pGameInfoObj->m_GameStateFlags = 0;
 	if(m_GameOverTick != -1)
 		pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_GAMEOVER;
@@ -779,7 +779,7 @@ void IGameController::Snap(int SnappingClient)
 	//pGameInfoObj->m_TimeLimit = g_Config.m_SvTimelimit;
 
 	pGameInfoObj->m_RoundNum = /*(str_length(g_Config.m_SvMaprotation) && g_Config.m_SvRoundsPerMap) ? g_Config.m_SvRoundsPerMap :*/ 0;
-	pGameInfoObj->m_RoundCurrent = m_RoundCount+1;
+	pGameInfoObj->m_RoundCurrent = 1;
 
 	CCharacter *pChr;
 	CPlayer *pPlayer = SnappingClient > -1 ? GameServer()->m_apPlayers[SnappingClient] : 0;
@@ -812,6 +812,12 @@ void IGameController::Snap(int SnappingClient)
 
 		pGameData[0] = m_RoundStartTick;
 		pGameData[1] = 0; // m_GameStateFlags
+		if(m_GameOverTick != -1)
+			pGameData[1] |= (1<<3); // GAMESTATEFLAG_GAMEOVER
+		if(m_SuddenDeath)
+			pGameData[1] |= (1<<1); // GAMESTATEFLAG_SUDDENDEATH
+		if(GameServer()->m_World.m_Paused)
+			pGameData[1] |= (1<<4); // GAMESTATEFLAG_PAUSED
 		pGameData[2] = 0; // m_GameStateEndTick
 	}
 
