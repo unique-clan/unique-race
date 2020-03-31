@@ -213,7 +213,7 @@ void CPlayer::Tick()
 				m_pCharacter = 0;
 			}
 		}
-		else if(m_Spawning && !m_WeakHookSpawn)
+		else
 			TryRespawn();
 	}
 	else
