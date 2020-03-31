@@ -1162,6 +1162,12 @@ void CCharacter::Snap(int SnappingClient)
 		((int*)pCharacter)[Offset+5] = pCharacter->m_AttackTick;
 		((int*)pCharacter)[Offset+6] = 0; // m_TriggeredEvents
 	}
+
+	if(Server()->IsSixup(SnappingClient) && m_DDRaceState == DDRACE_STARTED)
+	{
+		int *pPlayerInfoRace = (int*)Server()->SnapNewItem(23 + 24, id, 1*4);
+		pPlayerInfoRace[0] = m_StartTime;
+	}
 }
 
 int CCharacter::NetworkClipped(int SnappingClient)
@@ -1208,6 +1214,9 @@ CGameTeams* CCharacter::Teams()
 
 void CCharacter::HandleBroadcast()
 {
+	if(Server()->IsSixup(m_pPlayer->GetCID()))
+		return;
+
 	CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
 
 	if(m_DDRaceState == DDRACE_STARTED && m_CpLastBroadcast != m_CpActive &&
@@ -1391,7 +1400,20 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 		m_CpActive = cp;
 		m_CpCurrent[cp] = m_Time;
 		m_CpTick = Server()->Tick() + Server()->TickSpeed() * 2;
-		if(m_pPlayer->m_ClientVersion >= VERSION_DDRACE) {
+		if(Server()->IsSixup(m_pPlayer->GetCID()))
+		{
+			CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
+			if(m_CpActive != -1 && m_CpTick > Server()->Tick())
+			{
+				if(pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
+				{
+					CMsgPacker Msg(36 + 24 + 64); // NETMSGTYPE_SV_CHECKPOINT
+					Msg.AddInt((m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive])*1000); // m_Diff
+					Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, m_pPlayer->GetCID());
+				}
+			}
+		}
+		else if(m_pPlayer->m_ClientVersion >= VERSION_DDRACE) {
 			CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
 			CNetMsg_Sv_DDRaceTime Msg;
 			Msg.m_Time = round_to_int(m_Time);
@@ -1416,7 +1438,20 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 		m_CpActive = cpf;
 		m_CpCurrent[cpf] = m_Time;
 		m_CpTick = Server()->Tick() + Server()->TickSpeed()*2;
-		if(m_pPlayer->m_ClientVersion >= VERSION_DDRACE) {
+		if(Server()->IsSixup(m_pPlayer->GetCID()))
+		{
+			CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
+			if(m_CpActive != -1 && m_CpTick > Server()->Tick())
+			{
+				if(pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
+				{
+					CMsgPacker Msg(36 + 24 + 64); // NETMSGTYPE_SV_CHECKPOINT
+					Msg.AddInt((m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive])*1000); // m_Diff
+					Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, m_pPlayer->GetCID());
+				}
+			}
+		}
+		else if(m_pPlayer->m_ClientVersion >= VERSION_DDRACE) {
 			CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCID());
 			CNetMsg_Sv_DDRaceTime Msg;
 			Msg.m_Time = round_to_int(m_Time);

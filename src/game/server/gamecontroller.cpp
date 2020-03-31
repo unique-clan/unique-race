@@ -819,6 +819,14 @@ void IGameController::Snap(int SnappingClient)
 		if(GameServer()->m_World.m_Paused)
 			pGameData[1] |= (1<<4); // GAMESTATEFLAG_PAUSED
 		pGameData[2] = 0; // m_GameStateEndTick
+
+		int *pGameDataRace = (int*)Server()->SnapNewItem(24 + 24, 0, 3*4); // NETOBJTYPE_GAMEDATARACE
+		if(!pGameDataRace)
+			return;
+
+		pGameDataRace[0] = m_CurrentRecord * 1000;
+		pGameDataRace[1] = 3; // m_Precision
+		pGameDataRace[2] = (1<<0) /* RACEFLAG_HIDE_KILLMSG */ | (1<<2) /* RACEFLAG_KEEP_WANTED_WEAPON */; // m_RaceFlags
 	}
 
 	SnapFlags(SnappingClient);

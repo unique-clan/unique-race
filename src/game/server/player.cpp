@@ -302,9 +302,9 @@ void CPlayer::Snap(int SnappingClient)
 	else
 		Score = abs(m_Score) * -1;
 
+	CPlayerData *pData = GameServer()->Score()->PlayerData(GetCID());
 	if(!Server()->IsSixup(SnappingClient) && m_Team != TEAM_SPECTATORS && GameServer()->m_apPlayers[SnappingClient] && GameServer()->m_apPlayers[SnappingClient]->GetCharacter() && GameServer()->m_apPlayers[SnappingClient]->GetCharacter()->m_ShowTimesInNames)
 	{
-		CPlayerData *pData = GameServer()->Score()->PlayerData(GetCID());
 		if(pData->m_BestTime)
 		{
 			char aBuf[16];
@@ -331,7 +331,7 @@ void CPlayer::Snap(int SnappingClient)
 	if(Server()->IsSixup(SnappingClient))
 	{
 		((int*)pPlayerInfo)[0] = m_PlayerFlags&PLAYERFLAG_CHATTING ? (1<<1) : 0;
-		((int*)pPlayerInfo)[1] = Score;
+		((int*)pPlayerInfo)[1] = pData->m_BestTime * 1000;
 		((int*)pPlayerInfo)[2] = Latency;
 	}
 	else

@@ -478,21 +478,26 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 			Server()->ClientName(Player->GetCID()),
 			(int)Time / 60, Time - ((int)Time / 60 * 60));
 	for (int i = 0; i < MAX_CLIENTS; i++)
-		if (i != Player->GetCID() && GameServer()->m_apPlayers[i] && !GameServer()->m_apPlayers[i]->m_DND)
+		if (i != Player->GetCID() && GameServer()->m_apPlayers[i] && !GameServer()->m_apPlayers[i]->m_DND && !Server()->IsSixup(i))
 			GameServer()->SendChatTarget(i, aBuf);
-	int GhostTimeStartLength = str_length(Server()->ClientName(Player->GetCID())) + 13;
-	for (int i = 0; i < 256-GhostTimeStartLength; i++)
-		aBuf[GhostTimeStartLength+i] = ' ';
-	str_format(aBuf+256, 256,
-			"%d minute(s) %.3f second(s)",
-			(int)Time / 60, Time - ((int)Time / 60 * 60));
-	GameServer()->SendChatTarget(Player->GetCID(), aBuf);
-	str_format(aBuf, 128,
-			"%02d:%06.3f",
-			(int)Time / 60, Time - ((int)Time / 60 * 60));
-	GameServer()->SendChatTarget(Player->GetCID(), aBuf);
+	if(!Server()->IsSixup(Player->GetCID()))
+	{
+		int GhostTimeStartLength = str_length(Server()->ClientName(Player->GetCID())) + 13;
+		for (int i = 0; i < 256-GhostTimeStartLength; i++)
+			aBuf[GhostTimeStartLength+i] = ' ';
+		str_format(aBuf+256, 256,
+				"%d minute(s) %.3f second(s)",
+				(int)Time / 60, Time - ((int)Time / 60 * 60));
+		GameServer()->SendChatTarget(Player->GetCID(), aBuf);
+		str_format(aBuf, 128,
+				"%02d:%06.3f",
+				(int)Time / 60, Time - ((int)Time / 60 * 60));
+		GameServer()->SendChatTarget(Player->GetCID(), aBuf);
+	}
 
-	float Diff = fabs(Time - pData->m_BestTime);
+	float SignedDiff = Time - pData->m_BestTime;
+	float Diff = fabs(SignedDiff);
+	int RecordType = 0; // RECORDTYPE_NONE
 
 	if (Time - pData->m_BestTime < 0)
 	{
@@ -501,14 +506,18 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 
 		if (Diff < 0.0005)
 		{
-			GameServer()->SendChatTarget(Player->GetCID(),
-					"You finished with your best time");
+			if(!Server()->IsSixup(Player->GetCID()))
+				GameServer()->SendChatTarget(Player->GetCID(),
+						"You finished with your best time");
 		}
 		else
 		{
 			str_format(aBuf, sizeof(aBuf), "New record, %02d:%06.3f better",
 					(int)Diff / 60, Diff - ((int)Diff / 60 * 60));
-			GameServer()->SendChatTarget(Player->GetCID(), aBuf);
+			if(!Server()->IsSixup(Player->GetCID()))
+				GameServer()->SendChatTarget(Player->GetCID(), aBuf);
+
+			RecordType = 1; // RECORDTYPE_PLAYER
 		}
 	}
 	else if (pData->m_BestTime != 0) // tee has already finished?
@@ -517,14 +526,16 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 
 		if (Diff < 0.0005)
 		{
-			GameServer()->SendChatTarget(Player->GetCID(),
-					"You finished with your best time");
+			if(!Server()->IsSixup(Player->GetCID()))
+				GameServer()->SendChatTarget(Player->GetCID(),
+						"You finished with your best time");
 		}
 		else
 		{
 			str_format(aBuf, sizeof(aBuf), "You finished %02d:%06.3f worse",
 					(int)Diff / 60, Diff - ((int)Diff / 60 * 60));
-			GameServer()->SendChatTarget(Player->GetCID(), aBuf); //this is private, sent only to the tee
+			if(!Server()->IsSixup(Player->GetCID()))
+				GameServer()->SendChatTarget(Player->GetCID(), aBuf); //this is private, sent only to the tee
 		}
 	}
 	else
@@ -564,6 +575,21 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 			str_copy(GameServer()->m_pController->m_CurrentRecordHolder, Server()->ClientName(Player->GetCID()), sizeof(IGameController::m_CurrentRecordHolder));
 			GameServer()->m_pController->UpdateRecordFlag();
 			GameServer()->Score()->InsertRecordQueue(Server()->ClientName(Player->GetCID()), Time);
+
+			RecordType = 2; // RECORDTYPE_MAP
+		}
+	}
+
+	for (int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(Server()->IsSixup(i))
+		{
+			CMsgPacker Msg(35 + 24 + 64); // NETMSGTYPE_SV_RACEFINISH
+			Msg.AddInt(Player->GetCID());
+			Msg.AddInt(Time * 1000);
+			Msg.AddInt(SignedDiff * 1000);
+			Msg.AddInt(RecordType);
+			Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
 		}
 	}
 
