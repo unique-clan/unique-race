@@ -365,12 +365,9 @@ void CCharacter::FireWeapon()
 	// check if we gonna fire
 	bool WillFire = false;
 	if(CountInput(m_LatestPrevInput.m_Fire, m_LatestInput.m_Fire).m_Presses)
-	{
 		WillFire = true;
-		m_HasFiredFirst = true;
-	}
 
-	if((m_HasFiredFirst || m_pPlayer->m_LastDeathWeapon == WEAPON_SELF) && FullAuto && (m_LatestInput.m_Fire&1) && m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo)
+	if(FullAuto && (m_LatestInput.m_Fire&1) && m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo)
 		WillFire = true;
 
 	if(!WillFire)
@@ -916,7 +913,6 @@ void CCharacter::Die(int Killer, int Weapon)
 
 	// this is for auto respawn after 3 secs
 	m_pPlayer->m_DieTick = Server()->Tick();
-	m_pPlayer->m_LastDeathWeapon = Weapon;
 
 	m_Alive = false;
 	GameServer()->m_World.RemoveEntity(this);
