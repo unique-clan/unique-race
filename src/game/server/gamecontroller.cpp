@@ -1091,11 +1091,22 @@ int IGameController::SnapFastcapFlag(int SnappingClient)
 
 void IGameController::SnapFlags(int SnappingClient)
 {
-	CNetObj_GameData *pGameDataObj = (CNetObj_GameData *)Server()->SnapNewItem(NETOBJTYPE_GAMEDATA, 0, sizeof(CNetObj_GameData));
-	if(!pGameDataObj)
-		return;
-	pGameDataObj->m_TeamscoreRed = 0;
-	pGameDataObj->m_TeamscoreBlue = 0;
-	pGameDataObj->m_FlagCarrierRed = SnapFastcapFlag(SnappingClient);
-	pGameDataObj->m_FlagCarrierBlue = SnapRecordFlag(SnappingClient);
+	if(Server()->IsSixup(SnappingClient))
+	{
+		int *pGameDataFlag = (int*)Server()->SnapNewItem(8 + 24, 0, 4*4); // NETOBJTYPE_GAMEDATAFLAG
+		pGameDataFlag[0] = SnapFastcapFlag(SnappingClient);
+		pGameDataFlag[1] = SnapRecordFlag(SnappingClient);
+		pGameDataFlag[2] = 0; // m_FlagDropTickRed
+		pGameDataFlag[3] = 0; // m_FlagDropTickBlue
+	}
+	else
+	{
+		CNetObj_GameData *pGameDataObj = (CNetObj_GameData *)Server()->SnapNewItem(NETOBJTYPE_GAMEDATA, 0, sizeof(CNetObj_GameData));
+		if(!pGameDataObj)
+			return;
+		pGameDataObj->m_TeamscoreRed = 0;
+		pGameDataObj->m_TeamscoreBlue = 0;
+		pGameDataObj->m_FlagCarrierRed = SnapFastcapFlag(SnappingClient);
+		pGameDataObj->m_FlagCarrierBlue = SnapRecordFlag(SnappingClient);
+	}
 }

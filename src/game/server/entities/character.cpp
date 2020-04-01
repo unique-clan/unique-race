@@ -953,6 +953,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 			GameServer()->CreateDamageInd(m_Pos, 0, Dmg);
 		}
 
+		int OldHealth = m_Health, OldArmor = m_Armor;
 		if(Dmg)
 		{
 			if(m_Armor)
@@ -976,6 +977,18 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 			}
 
 			m_Health -= Dmg;
+		}
+
+		int *pEvent = (int*)GameServer()->m_Events.Create(22 + 24, 7*4, GameServer()->SixupMask()); // NETEVENTTYPE_DAMAGE
+		if(pEvent)
+		{
+			pEvent[0] = (int)m_Pos.x;
+			pEvent[1] = (int)m_Pos.y;
+			pEvent[2] = m_pPlayer->GetCID();
+			pEvent[3] = (int)(atan2f(Force.y, Force.x)*256.0f); // m_Angle
+			pEvent[4] = OldHealth - m_Health;
+			pEvent[5] = OldArmor - m_Armor;
+			pEvent[6] = From == m_pPlayer->GetCID();
 		}
 
 		m_DamageTakenTick = Server()->Tick();

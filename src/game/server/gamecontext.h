@@ -260,6 +260,7 @@ public:
 	void ForceVote(int EnforcerID, bool Success);
 
 	void SendSixupSkinChange(int Changer);
+	int64_t SixupMask();
 
 private:
 

@@ -3907,3 +3907,14 @@ void CGameContext::SendSixupSkinChange(int Changer)
 		}
 	}
 }
+
+int64_t CGameContext::SixupMask()
+{
+	int64_t m = 0;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(Server()->IsSixup(i))
+			m |= 1<<i;
+	}
+	return m;
+}
