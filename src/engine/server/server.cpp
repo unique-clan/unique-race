@@ -933,13 +933,18 @@ void CServer::SendMap(int ClientID)
 	{
 		CMsgPacker Msg(NETMSG_MAP_CHANGE);
 		Msg.AddString(GetMapName(), 0);
-		Msg.AddInt(m_CurrentMapCrc);
-		Msg.AddInt(m_CurrentMapSize);
 		if(m_aClients[ClientID].m_Sixup)
 		{
-			Msg.AddInt(1);
-			Msg.AddInt(1024-128);
-			Msg.AddRaw(m_CurrentMapSha256.data, sizeof(m_CurrentMapSha256.data));
+			Msg.AddInt(m_SixupMapCrc);
+			Msg.AddInt(m_SixupMapSize);
+			Msg.AddInt(10);
+			Msg.AddInt(1384);
+			Msg.AddRaw(m_SixupMapSha256.data, sizeof(m_SixupMapSha256.data));
+		}
+		else
+		{
+			Msg.AddInt(m_CurrentMapCrc);
+			Msg.AddInt(m_CurrentMapSize);
 		}
 		SendMsgEx(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH, ClientID, true);
 	}
@@ -949,17 +954,18 @@ void CServer::SendMap(int ClientID)
 
 void CServer::SendMapData(int ClientID, int Chunk)
 {
-	unsigned int ChunkSize = 1024-128;
+	unsigned int CurrentMapSize = m_aClients[ClientID].m_Sixup ? m_SixupMapSize : m_CurrentMapSize;
+	unsigned int ChunkSize = m_aClients[ClientID].m_Sixup ? 1384 : 1024-128;
 	unsigned int Offset = Chunk * ChunkSize;
 	int Last = 0;
 
 	// drop faulty map data requests
-	if(Chunk < 0 || Offset > m_CurrentMapSize)
+	if(Chunk < 0 || Offset > CurrentMapSize)
 		return;
 
-	if(Offset+ChunkSize >= m_CurrentMapSize)
+	if(Offset+ChunkSize >= CurrentMapSize)
 	{
-		ChunkSize = m_CurrentMapSize-Offset;
+		ChunkSize = CurrentMapSize-Offset;
 		Last = 1;
 	}
 
@@ -971,7 +977,7 @@ void CServer::SendMapData(int ClientID, int Chunk)
 		Msg.AddInt(Chunk);
 		Msg.AddInt(ChunkSize);
 	}
-	Msg.AddRaw(&m_pCurrentMapData[Offset], ChunkSize);
+	Msg.AddRaw(m_aClients[ClientID].m_Sixup ? &m_pSixupMapData[Offset] : &m_pCurrentMapData[Offset], ChunkSize);
 	SendMsgEx(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH, ClientID, true);
 
 	if(g_Config.m_Debug)
@@ -1138,8 +1144,11 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 
 			if(m_aClients[ClientID].m_Sixup)
 			{
-				SendMapData(ClientID, m_aClients[ClientID].m_NextMapChunk);
-				m_aClients[ClientID].m_NextMapChunk++;
+				for(int i = 0; i < 10; i ++)
+				{
+					SendMapData(ClientID, m_aClients[ClientID].m_NextMapChunk);
+					m_aClients[ClientID].m_NextMapChunk++;
+				}
 				return;
 			}
 
@@ -1707,9 +1716,14 @@ int CServer::LoadMap(const char *pMapName)
 {
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "maps/%s.map", pMapName);
+	char aSixup[512];
+	str_format(aSixup, sizeof(aSixup), "maps07/%s.map", pMapName);
 	GameServer()->OnMapChange(aBuf, sizeof(aBuf));
 
 	if(!m_pMap->Load(aBuf))
+		return 0;
+	CDataFileReader SixupMap;
+	if(!SixupMap.Open(Storage(), aSixup, IStorage::TYPE_ALL))
 		return 0;
 
 	// stop recording when we change map
@@ -1754,6 +1768,21 @@ int CServer::LoadMap(const char *pMapName)
 
 	for(int i=0; i<MAX_CLIENTS; i++)
 		m_aPrevStates[i] = m_aClients[i].m_State;
+
+	// get the crc of the map
+	m_SixupMapSha256 = SixupMap.Sha256();
+	m_SixupMapCrc = SixupMap.Crc();
+
+	// load complete map into memory for download
+	{
+		IOHANDLE File = SixupMap.File();
+		m_SixupMapSize = (unsigned int)io_length(File);
+		free(m_pSixupMapData);
+		m_pSixupMapData = (unsigned char *)malloc(m_SixupMapSize);
+		io_read(File, m_pSixupMapData, m_SixupMapSize);
+	}
+
+	SixupMap.Close();
 
 	return 1;
 }

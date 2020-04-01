@@ -215,6 +215,10 @@ public:
 	unsigned m_CurrentMapCrc;
 	unsigned char *m_pCurrentMapData;
 	unsigned int m_CurrentMapSize;
+	SHA256_DIGEST m_SixupMapSha256;
+	unsigned m_SixupMapCrc;
+	unsigned char *m_pSixupMapData;
+	unsigned int m_SixupMapSize;
 
 	CDemoRecorder m_aDemoRecorder[MAX_CLIENTS+1];
 	CRegister m_Register;
