@@ -259,7 +259,7 @@ void CServer::CClient::Reset()
 	m_NextMapChunk = 0;
 }
 
-CServer::CServer()
+CServer::CServer() : m_Register(false), m_RegSixup(true)
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)
 		m_aDemoRecorder[i] = CDemoRecorder(&m_SnapshotDelta, true);
@@ -1196,6 +1196,12 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				str_format(aBuf, sizeof(aBuf), "player has entered the game. ClientID=%d addr=%s", ClientID, aAddrStr);
 				Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 				m_aClients[ClientID].m_State = CClient::STATE_INGAME;
+				if(m_aClients[ClientID].m_Sixup)
+				{
+					CMsgPacker Msg(4 + 24); // NETMSG_SERVERINFO
+					GenerateServerInfoSixup(&Msg, -1);
+					SendMsgEx(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH|MSGFLAG_NORECORD, ClientID, true);
+				}
 				GameServer()->OnClientEnter(ClientID);
 			}
 		}
@@ -1465,7 +1471,7 @@ void CServer::SendServerInfo(const NETADDR *pAddr, int Token, int Type, bool Sen
 
 	ADD_INT(p, Token);
 
-	p.AddString(GameServer()->Version(), 32);
+	p.AddString("0.6/0.7", -1);
 	if(Type != SERVERINFO_VANILLA)
 	{
 		p.AddString(g_Config.m_SvName, 256);
@@ -1641,7 +1647,73 @@ void CServer::UpdateServerInfo()
 	{
 		if(m_aClients[i].m_State != CClient::STATE_EMPTY)
 		{
-			SendServerInfo(m_NetServer.ClientAddr(i), -1, SERVERINFO_INGAME, false);
+			if(m_aClients[i].m_Sixup)
+			{
+				CMsgPacker Msg(4 + 24); // NETMSG_SERVERINFO
+				GenerateServerInfoSixup(&Msg, -1);
+				SendMsgEx(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH|MSGFLAG_NORECORD, i, true);
+			}
+			else
+				SendServerInfo(m_NetServer.ClientAddr(i), -1, SERVERINFO_INGAME, false);
+		}
+	}
+}
+
+void CServer::GenerateServerInfoSixup(CPacker *pPacker, int Token)
+{
+	// count the players
+	int PlayerCount = 0, ClientCount = 0;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(m_aClients[i].m_State != CClient::STATE_EMPTY)
+		{
+			if(GameServer()->IsClientPlayer(i))
+				PlayerCount++;
+
+			ClientCount++;
+		}
+	}
+
+	if(Token != -1)
+	{
+		pPacker->Reset();
+		pPacker->AddRaw(SERVERBROWSE_INFO, sizeof(SERVERBROWSE_INFO));
+		pPacker->AddInt(Token);
+	}
+
+	pPacker->AddString("0.7/0.6", 32);
+	pPacker->AddString(g_Config.m_SvName, 64);
+	pPacker->AddString("", -1); // Hostname
+	pPacker->AddString(GetMapName(), 32);
+
+	// gametype
+	pPacker->AddString(GameServer()->GameType(), 16);
+
+	// flags
+	int Flags = 0;
+	if(g_Config.m_Password[0])  // password set
+		Flags |= 0x1; // SERVERINFO_FLAG_PASSWORD
+	Flags |= 0x2; // SERVERINFO_FLAG_TIMESCORE
+	pPacker->AddInt(Flags);
+
+	pPacker->AddInt(0); // server skill level (0-2)
+	pPacker->AddInt(PlayerCount); // num players
+	pPacker->AddInt(g_Config.m_SvMaxClients - g_Config.m_SvSpectatorSlots); // max players
+	pPacker->AddInt(ClientCount); // num clients
+	pPacker->AddInt(m_NetServer.MaxClients()); // max clients
+
+	if(Token != -1)
+	{
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(m_aClients[i].m_State != CClient::STATE_EMPTY)
+			{
+				pPacker->AddString(ClientName(i), MAX_NAME_LENGTH); // client name
+				pPacker->AddString(ClientClan(i), MAX_CLAN_LENGTH); // client clan
+				pPacker->AddInt(m_aClients[i].m_Country); // client country
+				pPacker->AddInt((m_aClients[i].m_Score == -9999) ? -1 : -m_aClients[i].m_Score); // client score
+				pPacker->AddInt(GameServer()->IsClientPlayer(i)?0:1); // flag spectator=1, bot=2 (player=0)
+			}
 		}
 	}
 }
@@ -1650,16 +1722,27 @@ void CServer::UpdateServerInfo()
 void CServer::PumpNetwork()
 {
 	CNetChunk Packet;
+	SECURITY_TOKEN ResponseToken;
 
 	m_NetServer.Update();
 
 	// process packets
-	while(m_NetServer.Recv(&Packet))
+	while(m_NetServer.Recv(&Packet, &ResponseToken))
 	{
 		if(Packet.m_ClientID == -1)
 		{
 			// stateless
-			if(!m_Register.RegisterProcessPacket(&Packet))
+			if(!(Packet.m_Flags&NETSENDFLAG_CONNLESS))
+			{
+				m_RegSixup.FeedToken(Packet.m_Address, ResponseToken);
+				continue;
+			}
+
+			if(ResponseToken != NET_SECURITY_TOKEN_UNKNOWN && m_RegSixup.RegisterProcessPacket(&Packet, ResponseToken))
+				continue;
+			if(ResponseToken == NET_SECURITY_TOKEN_UNKNOWN && m_Register.RegisterProcessPacket(&Packet))
+				continue;
+
 			{
 				int ExtraToken = 0;
 				int Type = -1;
@@ -1679,7 +1762,28 @@ void CServer::PumpNetwork()
 				{
 					Type = SERVERINFO_64_LEGACY;
 				}
-				if(Type != -1)
+
+				if(Type == SERVERINFO_VANILLA && ResponseToken != NET_SECURITY_TOKEN_UNKNOWN)
+				{
+					CUnpacker Unpacker;
+					Unpacker.Reset((unsigned char*)Packet.m_pData+sizeof(SERVERBROWSE_GETINFO), Packet.m_DataSize-sizeof(SERVERBROWSE_GETINFO));
+					int SrvBrwsToken = Unpacker.GetInt();
+					if(Unpacker.Error())
+						continue;
+
+					CPacker Packer;
+					CNetChunk Response;
+
+					GenerateServerInfoSixup(&Packer, SrvBrwsToken);
+
+					Response.m_ClientID = -1;
+					Response.m_Address = Packet.m_Address;
+					Response.m_Flags = NETSENDFLAG_CONNLESS;
+					Response.m_pData = Packer.Data();
+					Response.m_DataSize = Packer.Size();
+					m_NetServer.SendConnlessSixup(&Response, ResponseToken);
+				}
+				else if(Type != -1)
 				{
 					int Token = ((unsigned char *)Packet.m_pData)[sizeof(SERVERBROWSE_GETINFO)];
 					Token |= ExtraToken << 8;
@@ -1790,6 +1894,7 @@ int CServer::LoadMap(const char *pMapName)
 void CServer::InitRegister(CNetServer *pNetServer, IEngineMasterServer *pMasterServer, IConsole *pConsole)
 {
 	m_Register.Init(pNetServer, pMasterServer, pConsole);
+	m_RegSixup.Init(pNetServer, pMasterServer, pConsole);
 }
 
 int CServer::Run()
@@ -2002,6 +2107,7 @@ int CServer::Run()
 
 			// master server stuff
 			m_Register.RegisterUpdate(m_NetServer.NetType());
+			m_RegSixup.RegisterUpdate(m_NetServer.NetType());
 
 			if(!NonActive)
 				PumpNetwork();

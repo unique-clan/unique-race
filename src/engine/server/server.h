@@ -222,6 +222,7 @@ public:
 
 	CDemoRecorder m_aDemoRecorder[MAX_CLIENTS+1];
 	CRegister m_Register;
+	CRegister m_RegSixup;
 	CAuthManager m_AuthManager;
 
 	int m_RconRestrict;
@@ -294,6 +295,7 @@ public:
 	void SendServerInfo(const NETADDR *pAddr, int Token, int Type, bool SendClients);
 	void SendServerInfoConnless(const NETADDR *pAddr, int Token, int Type);
 	void UpdateServerInfo();
+	void GenerateServerInfoSixup(CPacker *pPacker, int Token);
 
 	void PumpNetwork();
 

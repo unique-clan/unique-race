@@ -22,11 +22,7 @@ static int ObjTypeToSixup(int Type)
 	else if(Type > 24)
 		Six = Type - 24;
 	else
-	{
-		//dbg_msg("net", "DROP obj %d", Type);
 		return -1;
-	}
-	//dbg_msg("net", "pack obj %d -> %d", Type, Six);
 	return Six;
 }
 
