@@ -1154,7 +1154,7 @@ void CGameContext::OnClientEnter(int ClientID)
 		if(i == ClientID || !m_apPlayers[i] || !Server()->ClientIngame(i))
 			continue;
 
-		if(Server()->ClientIngame(i) && Server()->IsSixup(i))
+		if(Server()->IsSixup(i))
 		{
 			// new info for others
 			CMsgPacker NewClientInfoMsg(18 + 24); // NETMSGTYPE_SV_CLIENTINFO
@@ -2000,7 +2000,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			pPlayer->m_LastChangeInfo = Server()->Tick();
 
 			// set infos
-			/*char aOldName[MAX_NAME_LENGTH];
+			char aOldName[MAX_NAME_LENGTH];
 			str_copy(aOldName, Server()->ClientName(ClientID), sizeof(aOldName));
 			Server()->SetClientName(ClientID, pMsg->m_pName);
 			if(str_comp(aOldName, Server()->ClientName(ClientID)) != 0)
@@ -2017,7 +2017,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				m_apPlayers[ClientID]->m_Score = (Score()->PlayerData(ClientID)->m_BestTime)?Score()->PlayerData(ClientID)->m_BestTime:-9999;
 
 				m_pController->UpdateRecordFlag();
-			}*/
+			}
 			Server()->SetClientClan(ClientID, pMsg->m_pClan);
 			Server()->SetClientCountry(ClientID, pMsg->m_Country);
 			str_copy(pPlayer->m_TeeInfos.m_SkinName, pMsg->m_pSkin, sizeof(pPlayer->m_TeeInfos.m_SkinName));
@@ -2026,7 +2026,33 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			pPlayer->m_TeeInfos.m_ColorFeet = pMsg->m_ColorFeet;
 
 			pPlayer->SkinToSixup();
-			SendSixupSkinChange(ClientID);
+
+			for(int i = 0; i < MAX_CLIENTS; ++i)
+			{
+				if(Server()->ClientIngame(i) && Server()->IsSixup(i))
+				{
+					CMsgPacker Msg(20 + 24); // NETMSGTYPE_SV_CLIENTDROP
+					Msg.AddInt(ClientID);
+					Msg.AddString("", -1); // m_pReason
+					Msg.AddInt(1); // m_Silent
+
+					Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
+
+					CMsgPacker ClientInfoMsg(18 + 24); // NETMSGTYPE_SV_CLIENTINFO
+					ClientInfoMsg.AddInt(ClientID);
+					ClientInfoMsg.AddInt(0); // m_Local
+					ClientInfoMsg.AddInt(m_apPlayers[ClientID]->GetTeam());
+					ClientInfoMsg.AddString(Server()->ClientName(ClientID), -1);
+					ClientInfoMsg.AddString(Server()->ClientClan(ClientID), -1);
+					ClientInfoMsg.AddInt(Server()->ClientCountry(ClientID));
+					for(int p = 0; p < 6; p++) ClientInfoMsg.AddString(m_apPlayers[ClientID]->m_TeeInfos.m_apSkinPartNames[p], -1);
+					for(int p = 0; p < 6; p++) ClientInfoMsg.AddInt(m_apPlayers[ClientID]->m_TeeInfos.m_aUseCustomColors[p]);
+					for(int p = 0; p < 6; p++) ClientInfoMsg.AddInt(m_apPlayers[ClientID]->m_TeeInfos.m_aSkinPartColors[p]);
+					ClientInfoMsg.AddInt(1); // m_Silent
+
+					Server()->SendMsg(&ClientInfoMsg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
+				}
+			}
 		}
 		else if (MsgID == NETMSGTYPE_CL_EMOTICON && !m_World.m_Paused)
 		{
@@ -3896,7 +3922,7 @@ void CGameContext::SendSixupSkinChange(int Changer)
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(Server()->IsSixup(i))
+		if(Server()->ClientIngame(i) && Server()->IsSixup(i))
 		{
 			CMsgPacker Msg(33 + 24 + 64); // NETMSGTYPE_SV_SKINCHANGE
 			Msg.AddInt(Changer);
