@@ -315,7 +315,8 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 
 	float SignedDiff = Time - pData->m_BestTime;
 	float Diff = fabs(SignedDiff);
-	int RecordType = 0; // RECORDTYPE_NONE
+	bool RecordPersonal = false;
+	bool RecordServer = false;
 
 	if (Time - pData->m_BestTime < 0)
 	{
@@ -335,7 +336,7 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 			if(!Server()->IsSixup(Player->GetCID()))
 				GameServer()->SendChatTarget(Player->GetCID(), aBuf);
 
-			RecordType = 1; // RECORDTYPE_PLAYER
+			RecordPersonal = true;
 		}
 	}
 	else if (pData->m_BestTime != 0) // tee has already finished?
@@ -394,7 +395,7 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 			GameServer()->m_pController->UpdateRecordFlag();
 			GameServer()->Score()->InsertRecordQueue(Server()->ClientName(Player->GetCID()), Time);
 
-			RecordType = 2; // RECORDTYPE_MAP
+			RecordServer = true;
 		}
 	}
 
@@ -406,7 +407,8 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 			Msg.AddInt(Player->GetCID());
 			Msg.AddInt(round_to_int(Time * 1000));
 			Msg.AddInt(round_to_int(SignedDiff * 1000));
-			Msg.AddInt(RecordType);
+			Msg.AddInt(RecordPersonal);
+			Msg.AddInt(RecordServer);
 			Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
 		}
 	}
