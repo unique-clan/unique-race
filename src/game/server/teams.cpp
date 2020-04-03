@@ -25,12 +25,11 @@ void CGameTeams::Reset()
 
 void CGameTeams::OnCharacterStart(int ClientID, float FractionOfTick)
 {
-	int Tick = Server()->Tick();
 	CPlayer* pPlayer = GetPlayer(ClientID);
 	if (pPlayer && pPlayer->IsPlaying())
 	{
 		SetDDRaceState(pPlayer, DDRACE_STARTED);
-		pPlayer->GetCharacter()->m_StartTime = Tick-1.0f+FractionOfTick;
+		pPlayer->GetCharacter()->m_StartTime = 20*((int64)Server()->Tick()) - 20 + (int)(20*FractionOfTick);
 	}
 }
 
@@ -286,8 +285,7 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 	if (!pChar)
 		return;
 	//TODO:DDRace:btd: this ugly
-	float Time = round_to_int(((float)(Server()->Tick()-1.0f+FractionOfTick - pChar->m_StartTime)
-			/ ((float)Server()->TickSpeed()))*1000.f)/1000.f;
+	float Time = (20*((int64)Server()->Tick()) - 20 + (int)(20*FractionOfTick) - pChar->m_StartTime) / 1000.0f;
 	if (Time < 0.000001f)
 		return;
 	CPlayerData *pData = GameServer()->Score()->PlayerData(Player->GetCID());
@@ -406,8 +404,8 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 		{
 			CMsgPacker Msg(35 + 24 + 64); // NETMSGTYPE_SV_RACEFINISH
 			Msg.AddInt(Player->GetCID());
-			Msg.AddInt(Time * 1000);
-			Msg.AddInt(SignedDiff * 1000);
+			Msg.AddInt(round_to_int(Time * 1000));
+			Msg.AddInt(round_to_int(SignedDiff * 1000));
 			Msg.AddInt(RecordType);
 			Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
 		}

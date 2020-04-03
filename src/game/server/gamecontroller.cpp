@@ -793,13 +793,13 @@ void IGameController::Snap(int SnappingClient)
 		{
 			if((pChr = pPlayer2->GetCharacter()) && pChr->m_DDRaceState == DDRACE_STARTED)
 			{
-				pGameInfoObj->m_WarmupTimer = -pChr->m_StartTime;
+				pGameInfoObj->m_WarmupTimer = -pChr->m_StartTime/20;
 				pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_RACETIME;
 			}
 		}
 		else if((pChr = pPlayer->GetCharacter()) && pChr->m_DDRaceState == DDRACE_STARTED)
 		{
-			pGameInfoObj->m_WarmupTimer = -pChr->m_StartTime;
+			pGameInfoObj->m_WarmupTimer = -pChr->m_StartTime/20;
 			pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_RACETIME;
 		}
 	}
@@ -824,7 +824,7 @@ void IGameController::Snap(int SnappingClient)
 		if(!pGameDataRace)
 			return;
 
-		pGameDataRace[0] = m_CurrentRecord * 1000;
+		pGameDataRace[0] = round_to_int(m_CurrentRecord * 1000);
 		pGameDataRace[1] = 3; // m_Precision
 		pGameDataRace[2] = (1<<0) /* RACEFLAG_HIDE_KILLMSG */ | (1<<2) /* RACEFLAG_KEEP_WANTED_WEAPON */; // m_RaceFlags
 	}

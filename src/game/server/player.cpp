@@ -330,7 +330,7 @@ void CPlayer::Snap(int SnappingClient)
 	if(Server()->IsSixup(SnappingClient))
 	{
 		((int*)pPlayerInfo)[0] = m_PlayerFlags&PLAYERFLAG_CHATTING ? (1<<1) : 0;
-		((int*)pPlayerInfo)[1] = pData->m_BestTime * 1000;
+		((int*)pPlayerInfo)[1] = round_to_int(pData->m_BestTime * 1000);
 		((int*)pPlayerInfo)[2] = Latency;
 	}
 	else

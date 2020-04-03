@@ -1175,7 +1175,7 @@ void CCharacter::Snap(int SnappingClient)
 	if(Server()->IsSixup(SnappingClient) && m_DDRaceState == DDRACE_STARTED)
 	{
 		int *pPlayerInfoRace = (int*)Server()->SnapNewItem(23 + 24, id, 1*4);
-		pPlayerInfoRace[0] = m_StartTime;
+		pPlayerInfoRace[0] = m_StartTime/20;
 	}
 }
 
@@ -1242,7 +1242,7 @@ void CCharacter::HandleBroadcast()
 	else if ((m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_BROADCAST || m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER_AND_BROADCAST) && m_DDRaceState == DDRACE_STARTED && m_LastBroadcast + Server()->TickSpeed() * g_Config.m_SvTimeInBroadcastInterval <= Server()->Tick())
 	{
 		char aBuftime[64];
-		int IntTime = (int)((float)(Server()->Tick() - m_StartTime) / ((float)Server()->TickSpeed()));
+		int IntTime = (int)((float)(Server()->Tick() - m_StartTime/20) / ((float)Server()->TickSpeed()));
 		str_format(aBuftime, sizeof(aBuftime), "%s%d:%s%d", ((IntTime/60) > 9)?"":"0", IntTime/60, ((IntTime%60) > 9)?"":"0", IntTime%60);
 		GameServer()->SendBroadcast(aBuftime, m_pPlayer->GetCID(), false);
 		m_CpLastBroadcast = m_CpActive;
@@ -1402,7 +1402,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 		m_LastBonus = false;
 		return;
 	}
-	m_Time = round_to_int(((float)(Server()->Tick()-1.0f+FractionOfTick - m_StartTime) / ((float)Server()->TickSpeed()))*1000.f)/1000.f;
+	m_Time = (20*((int64)Server()->Tick()) - 20 + (int)(20*FractionOfTick) - m_StartTime) / 1000.0f;
 	int cp = GameServer()->Collision()->IsCheckpoint(MapIndex);
 	if(cp != -1 && m_DDRaceState == DDRACE_STARTED && cp > m_CpActive)
 	{
@@ -1833,7 +1833,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 			return;
 		int Num = Controller->m_TeleOuts[z-1].size();
 		m_Core.m_Pos = Controller->m_TeleOuts[z-1][(!Num)?Num:rand() % Num];
-		m_StartTime += 1.0f - FractionOfTick;
+		m_StartTime -= 20 - (int)(20*FractionOfTick);
 		if(!g_Config.m_SvTeleportHoldHook)
 		{
 			m_Core.m_HookedPlayer = -1;
@@ -1855,7 +1855,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 			return;
 		int Num = Controller->m_TeleOuts[evilz-1].size();
 		m_Core.m_Pos = Controller->m_TeleOuts[evilz-1][(!Num)?Num:rand() % Num];
-		m_StartTime += 1.0f - FractionOfTick;
+		m_StartTime -= 20 - (int)(20*FractionOfTick);
 		if (!g_Config.m_SvOldTeleportHook && !g_Config.m_SvOldTeleportWeapons)
 		{
 			m_Core.m_Vel = vec2(0,0);
@@ -1887,7 +1887,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 			{
 				int Num = Controller->m_TeleCheckOuts[k].size();
 				m_Core.m_Pos = Controller->m_TeleCheckOuts[k][(!Num)?Num:rand() % Num];
-				m_StartTime += 1.0f - FractionOfTick;
+				m_StartTime -= 20 - (int)(20*FractionOfTick);
 				m_Core.m_Vel = vec2(0,0);
 
 				if(!g_Config.m_SvTeleportHoldHook)
@@ -1931,7 +1931,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 			{
 				int Num = Controller->m_TeleCheckOuts[k].size();
 				m_Core.m_Pos = Controller->m_TeleCheckOuts[k][(!Num)?Num:rand() % Num];
-				m_StartTime += 1.0f - FractionOfTick;
+				m_StartTime -= 20 - (int)(20*FractionOfTick);
 
 				if(!g_Config.m_SvTeleportHoldHook)
 				{

@@ -817,7 +817,7 @@ void CGameContext::OnTick()
 						g_Config.m_SvVoteVetoTime &&
 						((Server()->Tick() - m_apPlayers[i]->m_JoinTick) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime ||
 						 (m_apPlayers[i]->GetCharacter() && m_apPlayers[i]->GetCharacter()->m_DDRaceState == DDRACE_STARTED &&
-						 (Server()->Tick() - m_apPlayers[i]->GetCharacter()->m_StartTime) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime)))
+						 (Server()->Tick() - m_apPlayers[i]->GetCharacter()->m_StartTime/20) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime)))
 					{
 						if(ActVote == 0)
 							Veto = true;
@@ -1842,7 +1842,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			CCharacter *pChr = pPlayer->GetCharacter();
 			if(pChr)
 			{
-				int CurrTime = (Server()->Tick() - pChr->m_StartTime) / Server()->TickSpeed();
+				int CurrTime = (Server()->Tick() - pChr->m_StartTime/20) / Server()->TickSpeed();
 				if(g_Config.m_SvKillProtection != 0 && CurrTime >= (60 * g_Config.m_SvKillProtection) && pChr->m_DDRaceState == DDRACE_STARTED)
 				{
 					SendChatTarget(ClientID, "Kill Protection enabled. If you really want to join the spectators, first type /kill");
@@ -2119,7 +2119,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				return;
 
 			//Kill Protection
-			int CurrTime = (Server()->Tick() - pChr->m_StartTime) / Server()->TickSpeed();
+			int CurrTime = (Server()->Tick() - pChr->m_StartTime/20) / Server()->TickSpeed();
 			if(g_Config.m_SvKillProtection != 0 && CurrTime >= (60 * g_Config.m_SvKillProtection) && pChr->m_DDRaceState == DDRACE_STARTED)
 			{
 				SendChatTarget(ClientID, "Kill Protection enabled. If you really want to kill, type /kill");
