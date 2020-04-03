@@ -1825,66 +1825,6 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 			m_Core.m_Jumps = newJumps;
 		}
 	}
-	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_PENALTY && !m_LastPenalty)
-	{
-		int min = GameServer()->Collision()->GetSwitchDelay(MapIndex);
-		int sec = GameServer()->Collision()->GetSwitchNumber(MapIndex);
-		int Team = Teams()->m_Core.Team(m_Core.m_Id);
-
-		m_StartTime -= (min * 60 + sec) * Server()->TickSpeed();
-
-		if (Team != TEAM_FLOCK && Team != TEAM_SUPER)
-		{
-			for (int i = 0; i < MAX_CLIENTS; i++)
-			{
-				if(Teams()->m_Core.Team(i) == Team && i != m_Core.m_Id && GameServer()->m_apPlayers[i])
-				{
-					CCharacter* pChar = GameServer()->m_apPlayers[i]->GetCharacter();
-
-					if (pChar)
-						pChar->m_StartTime = m_StartTime;
-				}
-			}
-		}
-
-		m_LastPenalty = true;
-	}
-	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_BONUS && !m_LastBonus)
-	{
-		int min = GameServer()->Collision()->GetSwitchDelay(MapIndex);
-		int sec = GameServer()->Collision()->GetSwitchNumber(MapIndex);
-		int Team = Teams()->m_Core.Team(m_Core.m_Id);
-
-		m_StartTime += (min * 60 + sec) * Server()->TickSpeed();
-		if (m_StartTime > Server()->Tick())
-			m_StartTime = Server()->Tick();
-
-		if (Team != TEAM_FLOCK && Team != TEAM_SUPER)
-		{
-			for (int i = 0; i < MAX_CLIENTS; i++)
-			{
-				if(Teams()->m_Core.Team(i) == Team && i != m_Core.m_Id && GameServer()->m_apPlayers[i])
-				{
-					CCharacter* pChar = GameServer()->m_apPlayers[i]->GetCharacter();
-
-					if (pChar)
-						pChar->m_StartTime = m_StartTime;
-				}
-			}
-		}
-
-		m_LastBonus = true;
-	}
-
-	if(GameServer()->Collision()->IsSwitch(MapIndex) != TILE_PENALTY)
-	{
-		m_LastPenalty = false;
-	}
-
-	if(GameServer()->Collision()->IsSwitch(MapIndex) != TILE_BONUS)
-	{
-		m_LastBonus = false;
-	}
 
 	int z = GameServer()->Collision()->IsTeleport(MapIndex);
 	if(!g_Config.m_SvOldTeleportHook && !g_Config.m_SvOldTeleportWeapons && z && Controller->m_TeleOuts[z-1].size())
@@ -2347,25 +2287,6 @@ void CCharacter::DDRaceInit()
 	m_ShowTimesInNames = false;
 	m_GotFastcapFlag1 = false;
 	m_GotFastcapFlag2 = false;
-
-	int Team = Teams()->m_Core.Team(m_Core.m_Id);
-
-	if(Teams()->TeamLocked(Team))
-	{
-		for (int i = 0; i < MAX_CLIENTS; i++)
-		{
-			if(Teams()->m_Core.Team(i) == Team && i != m_Core.m_Id && GameServer()->m_apPlayers[i])
-			{
-				CCharacter* pChar = GameServer()->m_apPlayers[i]->GetCharacter();
-
-				if (pChar)
-				{
-					m_DDRaceState = pChar->m_DDRaceState;
-					m_StartTime = pChar->m_StartTime;
-				}
-			}
-		}
-	}
 }
 
 void CCharacter::Rescue()

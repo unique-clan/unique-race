@@ -1170,97 +1170,6 @@ bool CheckClientID(int ClientID)
 	return true;
 }
 
-void CGameContext::ConSayTime(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *) pUserData;
-	if (!CheckClientID(pResult->m_ClientID))
-		return;
-
-	int ClientID;
-	char aBufname[MAX_NAME_LENGTH];
-
-	if (pResult->NumArguments() > 0)
-	{
-		for(ClientID = 0; ClientID < MAX_CLIENTS; ClientID++)
-			if (str_comp(pResult->GetString(0), pSelf->Server()->ClientName(ClientID)) == 0)
-				break;
-
-		if(ClientID == MAX_CLIENTS)
-			return;
-
-		str_format(aBufname, sizeof(aBufname), "%s's", pSelf->Server()->ClientName(ClientID));
-	}
-	else
-	{
-		str_copy(aBufname, "Your", sizeof(aBufname));
-		ClientID = pResult->m_ClientID;
-	}
-
-	CPlayer *pPlayer = pSelf->m_apPlayers[ClientID];
-	if (!pPlayer)
-		return;
-	CCharacter* pChr = pPlayer->GetCharacter();
-	if (!pChr)
-		return;
-	if(pChr->m_DDRaceState != DDRACE_STARTED)
-		return;
-
-	char aBuftime[64];
-	float Time = round_to_int(((float)(pSelf->Server()->Tick() - pChr->m_StartTime)
-			/ ((float)pSelf->Server()->TickSpeed()))*1000.f)/1000.f;
-	str_format(aBuftime, sizeof(aBuftime), "%s time is %02d:%06.3f",
-			aBufname,
-			(int)Time / 60, Time - ((int)Time / 60 * 60));
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "time", aBuftime);
-}
-
-void CGameContext::ConSayTimeAll(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *) pUserData;
-	if (!CheckClientID(pResult->m_ClientID))
-		return;
-
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	if (!pPlayer)
-		return;
-	CCharacter* pChr = pPlayer->GetCharacter();
-	if (!pChr)
-		return;
-	if(pChr->m_DDRaceState != DDRACE_STARTED)
-		return;
-
-	char aBuftime[64];
-	float Time = round_to_int(((float)(pSelf->Server()->Tick() - pChr->m_StartTime)
-			/ ((float)pSelf->Server()->TickSpeed()))*1000.f)/1000.f;
-	str_format(aBuftime, sizeof(aBuftime),
-			"%s\'s current race time is %02d:%06.3f",
-			pSelf->Server()->ClientName(pResult->m_ClientID),
-			(int)Time / 60, Time - ((int)Time / 60 * 60));
-	pSelf->SendChat(-1, CGameContext::CHAT_ALL, aBuftime, pResult->m_ClientID);
-}
-
-void CGameContext::ConTime(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *) pUserData;
-	if (!CheckClientID(pResult->m_ClientID))
-		return;
-
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	if (!pPlayer)
-		return;
-	CCharacter* pChr = pPlayer->GetCharacter();
-	if (!pChr)
-		return;
-
-	char aBuftime[64];
-	int IntTime = (int)((float)(pSelf->Server()->Tick() - pChr->m_StartTime)
-			/ ((float)pSelf->Server()->TickSpeed()));
-	str_format(aBuftime, sizeof(aBuftime), "Your time is %s%d:%s%d",
-				((IntTime / 60) > 9) ? "" : "0", IntTime / 60,
-				((IntTime % 60) > 9) ? "" : "0", IntTime % 60);
-	pSelf->SendBroadcast(aBuftime, pResult->m_ClientID);
-}
-
 static const char s_aaMsg[3][128] = {"game/round timer.", "broadcast.", "both game/round timer and broadcast."};
 
 void CGameContext::ConSetTimerType(IConsole::IResult *pResult, void *pUserData)
@@ -1355,31 +1264,6 @@ void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	pChr->Rescue();
-}
-
-void CGameContext::ConProtectedKill(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *) pUserData;
-	if (!CheckClientID(pResult->m_ClientID))
-		return;
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	if (!pPlayer)
-		return;
-	CCharacter* pChr = pPlayer->GetCharacter();
-	if (!pChr)
-		return;
-
-	int CurrTime = (pSelf->Server()->Tick() - pChr->m_StartTime) / pSelf->Server()->TickSpeed();
-	if(g_Config.m_SvKillProtection != 0 && CurrTime >= (60 * g_Config.m_SvKillProtection) && pChr->m_DDRaceState == DDRACE_STARTED)
-	{
-			pPlayer->KillCharacter(WEAPON_SELF);
-
-			//char aBuf[64];
-			//str_format(aBuf, sizeof(aBuf), "You killed yourself in: %s%d:%s%d",
-			//		((CurrTime / 60) > 9) ? "" : "0", CurrTime / 60,
-			//		((CurrTime % 60) > 9) ? "" : "0", CurrTime % 60);
-			//pSelf->SendChatTarget(pResult->m_ClientID, aBuf);
-	}
 }
 
 void CGameContext::ConModhelp(IConsole::IResult *pResult, void *pUserData)

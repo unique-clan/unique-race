@@ -3026,7 +3026,6 @@ void CGameContext::OnInit(bool FirstInit)
 		CTeeHistorian::CGameInfo GameInfo;
 		GameInfo.m_GameUuid = m_GameUuid;
 		GameInfo.m_pServerVersion = aVersion;
-		GameInfo.m_StartTime = time(0);
 
 		GameInfo.m_pServerName = g_Config.m_SvName;
 		GameInfo.m_ServerPort = g_Config.m_SvPort;

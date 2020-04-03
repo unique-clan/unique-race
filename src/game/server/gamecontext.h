@@ -347,12 +347,9 @@ private:
 	static void ConShowAll(IConsole::IResult *pResult, void *pUserData);
 	static void ConSpecTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConNinjaJetpack(IConsole::IResult *pResult, void *pUserData);
-	static void ConSayTime(IConsole::IResult *pResult, void *pUserData);
-	static void ConSayTimeAll(IConsole::IResult *pResult, void *pUserData);
 	static void ConTime(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetTimerType(IConsole::IResult *pResult, void *pUserData);
 	static void ConRescue(IConsole::IResult *pResult, void *pUserData);
-	static void ConProtectedKill(IConsole::IResult *pResult, void *pUserData);
 	static void ConShowFlag(IConsole::IResult *pResult, void *pUserData);
 	static void ConRed(IConsole::IResult *pResult, void *pUserData);
 	static void ConBlue(IConsole::IResult *pResult, void *pUserData);

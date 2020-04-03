@@ -26,137 +26,19 @@ void CGameTeams::Reset()
 void CGameTeams::OnCharacterStart(int ClientID, float FractionOfTick)
 {
 	int Tick = Server()->Tick();
-	CCharacter* pStartingChar = Character(ClientID);
-	if (!pStartingChar)
-		return;
-	if (m_Core.Team(ClientID) != TEAM_FLOCK && pStartingChar->m_DDRaceState == DDRACE_FINISHED)
-		return;
-	if (m_Core.Team(ClientID) == TEAM_FLOCK
-			|| m_Core.Team(ClientID) == TEAM_SUPER)
+	CPlayer* pPlayer = GetPlayer(ClientID);
+	if (pPlayer && pPlayer->IsPlaying())
 	{
-		pStartingChar->m_DDRaceState = DDRACE_STARTED;
-		pStartingChar->m_StartTime = Tick;
-	}
-	else
-	{
-		bool Waiting = false;
-		for (int i = 0; i < MAX_CLIENTS; ++i)
-		{
-			if (m_Core.Team(ClientID) == m_Core.Team(i))
-			{
-				CPlayer* pPlayer = GetPlayer(i);
-				if (pPlayer && pPlayer->IsPlaying()
-						&& GetDDRaceState(pPlayer) == DDRACE_FINISHED)
-				{
-					Waiting = true;
-					pStartingChar->m_DDRaceState = DDRACE_NONE;
-
-					if (m_LastChat[ClientID] + Server()->TickSpeed()
-							+ g_Config.m_SvChatDelay < Tick)
-					{
-						char aBuf[128];
-						str_format(
-								aBuf,
-								sizeof(aBuf),
-								"%s has finished and didn't go through start yet, wait for him or join another team.",
-								Server()->ClientName(i));
-						GameServer()->SendChatTarget(ClientID, aBuf);
-						m_LastChat[ClientID] = Tick;
-					}
-					if (m_LastChat[i] + Server()->TickSpeed()
-							+ g_Config.m_SvChatDelay < Tick)
-					{
-						char aBuf[128];
-						str_format(
-								aBuf,
-								sizeof(aBuf),
-								"%s wants to start a new round, kill or walk to start.",
-								Server()->ClientName(ClientID));
-						GameServer()->SendChatTarget(i, aBuf);
-						m_LastChat[i] = Tick;
-					}
-				}
-			}
-		}
-
-		if (m_TeamState[m_Core.Team(ClientID)] < TEAMSTATE_STARTED && !Waiting)
-		{
-			ChangeTeamState(m_Core.Team(ClientID), TEAMSTATE_STARTED);
-
-			char aBuf[512];
-			str_format(
-					aBuf,
-					sizeof(aBuf),
-					"Team %d started with these %d players: ",
-					m_Core.Team(ClientID),
-					Count(m_Core.Team(ClientID)));
-
-			bool First = true;
-
-			for (int i = 0; i < MAX_CLIENTS; ++i)
-			{
-				if (m_Core.Team(ClientID) == m_Core.Team(i))
-				{
-					CPlayer* pPlayer = GetPlayer(i);
-					// TODO: THE PROBLEM IS THAT THERE IS NO CHARACTER SO START TIME CAN'T BE SET!
-					if (pPlayer && (pPlayer->IsPlaying() || TeamLocked(m_Core.Team(ClientID))))
-					{
-						SetDDRaceState(pPlayer, DDRACE_STARTED);
-						if(pPlayer->GetCharacter())
-							pPlayer->GetCharacter()->m_StartTime = Tick-1.0f+FractionOfTick;
-					}
-				}
-			}
-		}
+		SetDDRaceState(pPlayer, DDRACE_STARTED);
+		pPlayer->GetCharacter()->m_StartTime = Tick-1.0f+FractionOfTick;
 	}
 }
 
 void CGameTeams::OnCharacterFinish(int ClientID, float FractionOfTick)
 {
-	if (m_Core.Team(ClientID) == TEAM_FLOCK
-			|| m_Core.Team(ClientID) == TEAM_SUPER)
-	{
-		CPlayer* pPlayer = GetPlayer(ClientID);
-		if (pPlayer && pPlayer->IsPlaying())
-			OnFinish(pPlayer, FractionOfTick);
-	}
-	else
-	{
-		m_TeeFinished[ClientID] = true;
-
-		CheckTeamFinished(m_Core.Team(ClientID), FractionOfTick);
-	}
-}
-
-void CGameTeams::CheckTeamFinished(int Team, float FractionOfTick)
-{
-	if (TeamFinished(Team))
-	{
-		CPlayer *TeamPlayers[MAX_CLIENTS];
-		unsigned int PlayersCount = 0;
-
-		for (int i = 0; i < MAX_CLIENTS; ++i)
-		{
-			if (Team == m_Core.Team(i))
-			{
-				CPlayer* pPlayer = GetPlayer(i);
-				if (pPlayer && pPlayer->IsPlaying())
-				{
-					OnFinish(pPlayer, FractionOfTick);
-					m_TeeFinished[i] = false;
-
-					TeamPlayers[PlayersCount++] = pPlayer;
-				}
-			}
-		}
-
-		if (PlayersCount > 0)
-		{
-			ChangeTeamState(Team, TEAMSTATE_FINISHED); //TODO: Make it better
-			//ChangeTeamState(Team, TEAMSTATE_OPEN);
-			OnTeamFinish(TeamPlayers, PlayersCount);
-		}
-	}
+	CPlayer* pPlayer = GetPlayer(ClientID);
+	if (pPlayer && pPlayer->IsPlaying())
+		OnFinish(pPlayer, FractionOfTick);
 }
 
 bool CGameTeams::SetCharacterTeam(int ClientID, int Team)
@@ -279,14 +161,6 @@ void CGameTeams::onChangeTeamState(int Team, int State, int OldState)
 	}
 }
 
-bool CGameTeams::TeamFinished(int Team)
-{
-	for (int i = 0; i < MAX_CLIENTS; ++i)
-		if (m_Core.Team(i) == Team && !m_TeeFinished[i])
-			return false;
-	return true;
-}
-
 int64_t CGameTeams::TeamMask(int Team, int ExceptID, int Asker)
 {
 	int64_t Mask = 0;
@@ -383,27 +257,6 @@ void CGameTeams::SetDDRaceState(CPlayer* Player, int DDRaceState)
 		pChar->m_DDRaceState = DDRaceState;
 }
 
-int CGameTeams::GetStartTime(CPlayer* Player)
-{
-	if (!Player)
-		return 0;
-
-	CCharacter* pChar = Player->GetCharacter();
-	if (pChar)
-		return pChar->m_StartTime;
-	return 0;
-}
-
-void CGameTeams::SetStartTime(CPlayer* Player, int StartTime)
-{
-	if (!Player)
-		return;
-
-	CCharacter* pChar = Player->GetCharacter();
-	if (pChar)
-		pChar->m_StartTime = StartTime;
-}
-
 void CGameTeams::SetCpActive(CPlayer* Player, int CpActive)
 {
 	if (!Player)
@@ -423,39 +276,6 @@ float *CGameTeams::GetCpCurrent(CPlayer* Player)
 	if (pChar)
 		return pChar->m_CpCurrent;
 	return NULL;
-}
-
-void CGameTeams::OnTeamFinish(CPlayer** Players, unsigned int Size)
-{
-	float Time = (float)(Server()->Tick() - GetStartTime(Players[0]))
-			/ ((float)Server()->TickSpeed());
-	if (Time < 0.000001f)
-		return;
-
-	bool CallSaveScore = false;
-
-#if defined(CONF_SQL)
-	CallSaveScore = g_Config.m_SvUseSQL;
-#endif
-
-	int PlayerCIDs[MAX_CLIENTS];
-
-	for(unsigned int i = 0; i < Size; i++)
-	{
-		PlayerCIDs[i] = Players[i]->GetCID();
-
-		if(g_Config.m_SvRejoinTeam0 && g_Config.m_SvTeam != 3 && (m_Core.Team(Players[i]->GetCID()) >= TEAM_SUPER || !m_TeamLocked[m_Core.Team(Players[i]->GetCID())]))
-		{
-			SetForceCharacterTeam(Players[i]->GetCID(), 0);
-			char aBuf[512];
-			str_format(aBuf, sizeof(aBuf), "%s joined team 0",
-					GameServer()->Server()->ClientName(Players[i]->GetCID()));
-			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
-		}
-	}
-
-	if (CallSaveScore && Size >= 2)
-		GameServer()->Score()->SaveTeamScore(PlayerCIDs, Size, Time);
 }
 
 void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
@@ -668,7 +488,6 @@ void CGameTeams::OnCharacterDeath(int ClientID, int Weapon)
 	if(!Locked)
 	{
 		SetForceCharacterTeam(ClientID, 0);
-		//CheckTeamFinished(Team);
 	}
 	else
 	{
