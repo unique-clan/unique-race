@@ -1497,7 +1497,29 @@ void CServer::SendServerInfo(const NETADDR *pAddr, int Token, int Type, bool Sen
 	}
 
 	// gametype
-	p.AddString(GameServer()->GameType(), 16);
+	bool FakeDDNet = false;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(m_aClients[i].m_State == CClient::STATE_EMPTY)
+			continue;
+		if(GameServer()->GetClientVersion(i) == 0 || GameServer()->GetClientVersion(i) >= 11030)
+			continue;
+		NETADDR Addr1 = *pAddr;
+		NETADDR Addr2 = *m_NetServer.ClientAddr(i);
+		Addr1.port = 0;
+		Addr2.port = 0;
+		if(net_addr_comp(&Addr1, &Addr2) == 0)
+			FakeDDNet = true;
+	}
+	if(FakeDDNet)
+	{
+		char aBuf[16] = "          DDNET";
+		const char *GameTypeStr = GameServer()->GameType();
+		for(int i = 0; GameTypeStr[i]; i++) aBuf[i] = GameTypeStr[i];
+		p.AddString(aBuf, 16);
+	}
+	else
+		p.AddString(GameServer()->GameType(), 16);
 
 	// flags
 	ADD_INT(p, g_Config.m_Password[0] ? SERVER_FLAG_PASSWORD : 0);
