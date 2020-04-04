@@ -445,6 +445,9 @@ void CPlayer::OnDisconnect(const char *pReason)
 
 void CPlayer::OnPredictedInput(CNetObj_PlayerInput *NewInput)
 {
+	if(Server()->IsSixup(m_ClientID))
+		NewInput->m_PlayerFlags = (NewInput->m_PlayerFlags<<1)&(PLAYERFLAG_CHATTING|PLAYERFLAG_SCOREBOARD);
+
 	// skip the input if chat is active
 	if((m_PlayerFlags&PLAYERFLAG_CHATTING) && (NewInput->m_PlayerFlags&PLAYERFLAG_CHATTING))
 		return;
@@ -466,6 +469,9 @@ void CPlayer::OnPredictedInput(CNetObj_PlayerInput *NewInput)
 
 void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 {
+	if(Server()->IsSixup(m_ClientID))
+		NewInput->m_PlayerFlags = (NewInput->m_PlayerFlags<<1)&(PLAYERFLAG_CHATTING|PLAYERFLAG_SCOREBOARD);
+
 	if (AfkTimer(NewInput->m_TargetX, NewInput->m_TargetY))
 		return; // we must return if kicked, as player struct is already deleted
 	AfkVoteTimer(NewInput);
@@ -480,11 +486,11 @@ void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 		if(m_pCharacter)
 			m_pCharacter->ResetInput();
 
-		m_PlayerFlags = Server()->IsSixup(m_ClientID) ? ((NewInput->m_PlayerFlags<<1)&(PLAYERFLAG_CHATTING|PLAYERFLAG_SCOREBOARD)) : NewInput->m_PlayerFlags;
+		m_PlayerFlags = NewInput->m_PlayerFlags;
 		return;
 	}
 
-	m_PlayerFlags = Server()->IsSixup(m_ClientID) ? ((NewInput->m_PlayerFlags<<1)&(PLAYERFLAG_CHATTING|PLAYERFLAG_SCOREBOARD)) : NewInput->m_PlayerFlags;
+	m_PlayerFlags = NewInput->m_PlayerFlags;
 
 	if(m_pCharacter)
 	{
