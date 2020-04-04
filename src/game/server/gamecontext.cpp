@@ -308,17 +308,23 @@ void CGameContext::CallVote(int ClientID, const char *pDesc, const char *pCmd, c
 
 void CGameContext::SendChatTarget(int To, const char *pText)
 {
-	CMsgPacker Msg(NETMSGTYPE_SV_CHAT);
 	if(Server()->IsSixup(To))
+	{
+		CMsgPacker Msg(NETMSGTYPE_SV_CHAT);
 		Msg.AddInt(1); // CHAT_ALL
-	else
-		Msg.AddInt(0); // m_Team
-	Msg.AddInt(-1); // m_ClientID
-	if(Server()->IsSixup(To))
+		Msg.AddInt(-1); // m_ClientID
 		Msg.AddInt(-1); // m_TargetID
-	Msg.AddString(pText, -1);
-
-	Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, To);
+		Msg.AddString(pText, -1);
+		Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, To);
+	}
+	else
+	{
+		CNetMsg_Sv_Chat Msg;
+		Msg.m_Team = 0;
+		Msg.m_ClientID = -1;
+		Msg.m_pMessage = pText;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, To);
+	}
 }
 
 void CGameContext::SendChatTeam(int Team, const char *pText)
@@ -359,52 +365,57 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText, in
 		// send to the clients
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
+			if(m_apPlayers[i] == 0)
+				continue;
 			if(NoSixup && Server()->IsSixup(i))
 				continue;
-			if(m_apPlayers[i] != 0) {
-				if(!m_apPlayers[i]->m_DND)
-				{
-					CMsgPacker Msg(NETMSGTYPE_SV_CHAT);
-					if(Server()->IsSixup(i))
-						Msg.AddInt(1); // CHAT_ALL
-					else
-						Msg.AddInt(0); // m_Team
-					Msg.AddInt(ChatterClientID);
-					if(Server()->IsSixup(i))
-						Msg.AddInt(-1); // m_TargetID
-					Msg.AddString(aText, -1);
 
-					Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
-				}
+			if(Server()->IsSixup(i))
+			{
+
+				CMsgPacker Msg(NETMSGTYPE_SV_CHAT);
+				Msg.AddInt(1); // CHAT_ALL
+				Msg.AddInt(ChatterClientID);
+				Msg.AddInt(-1); // m_TargetID
+				Msg.AddString(aText, -1);
+				Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
+			}
+			else
+			{
+				CNetMsg_Sv_Chat Msg;
+				Msg.m_Team = 0;
+				Msg.m_ClientID = ChatterClientID;
+				Msg.m_pMessage = aText;
+				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
 			}
 		}
 	}
 	else
 	{
-		CTeamsCore * Teams = &((CGameControllerDDRace*)m_pController)->m_Teams.m_Core;
 		// send to the clients
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
-			if(m_apPlayers[i] != 0) {
-				CMsgPacker Msg(NETMSGTYPE_SV_CHAT);
-				if(Server()->IsSixup(i))
-					Msg.AddInt(2); // CHAT_TEAM
-				else
-					Msg.AddInt(1); // m_Team
-				Msg.AddInt(ChatterClientID);
-				if(Server()->IsSixup(i))
-					Msg.AddInt(-1); // m_TargetID
-				Msg.AddString(aText, -1);
+			if(m_apPlayers[i] == 0)
+				continue;
+			if(m_apPlayers[i]->GetTeam() != Team)
+				continue;
 
-				if(Team == CHAT_SPEC) {
-					if(m_apPlayers[i]->GetTeam() == CHAT_SPEC) {
-						Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
-					}
-				} else {
-					if(Teams->Team(i) == Team && m_apPlayers[i]->GetTeam() != CHAT_SPEC) {
-						Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
-					}
-				}
+			if(Server()->IsSixup(i))
+			{
+				CMsgPacker Msg(NETMSGTYPE_SV_CHAT);
+				Msg.AddInt(2); // CHAT_TEAM
+				Msg.AddInt(ChatterClientID);
+				Msg.AddInt(-1); // m_TargetID
+				Msg.AddString(aText, -1);
+				Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
+			}
+			else
+			{
+				CNetMsg_Sv_Chat Msg;
+				Msg.m_Team = 1;
+				Msg.m_ClientID = ChatterClientID;
+				Msg.m_pMessage = aText;
+				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
 			}
 		}
 	}
@@ -1411,11 +1422,8 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if(Length == 0 || (pMsg->m_pMessage[0]!='/' && (g_Config.m_SvSpamprotection && pPlayer->m_LastChat && pPlayer->m_LastChat+Server()->TickSpeed()*((31+Length)/32) > Server()->Tick())))
 				return;
 
-			//pPlayer->m_LastChat = Server()->Tick();
-
-			int GameTeam = ((CGameControllerDDRace*)m_pController)->m_Teams.m_Core.Team(pPlayer->GetCID());
 			if(Team)
-				Team = ((pPlayer->GetTeam() == -1) ? CHAT_SPEC : GameTeam);
+				Team = pPlayer->GetTeam();
 			else
 				Team = CHAT_ALL;
 
