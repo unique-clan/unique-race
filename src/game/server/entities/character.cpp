@@ -979,7 +979,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 			m_Health -= Dmg;
 		}
 
-		int *pEvent = (int*)GameServer()->m_Events.Create(22 + 24, 7*4, GameServer()->SixupMask()); // NETEVENTTYPE_DAMAGE
+		int *pEvent = (int*)GameServer()->m_Events.Create(22 + 24, 7*4, GameServer()->SixupMask() & Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID())); // NETEVENTTYPE_DAMAGE
 		if(pEvent)
 		{
 			pEvent[0] = (int)m_Pos.x;
