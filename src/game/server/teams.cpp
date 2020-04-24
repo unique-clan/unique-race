@@ -26,11 +26,15 @@ void CGameTeams::Reset()
 void CGameTeams::OnCharacterStart(int ClientID, float FractionOfTick)
 {
 	CPlayer* pPlayer = GetPlayer(ClientID);
-	if (pPlayer && pPlayer->IsPlaying())
-	{
-		SetDDRaceState(pPlayer, DDRACE_STARTED);
-		pPlayer->GetCharacter()->m_StartTime = 20*((int64)Server()->Tick()) - 20 + (int)(20*FractionOfTick);
-	}
+	if (!pPlayer || !pPlayer->IsPlaying())
+		return;
+
+	CCharacter* pStartingChar = pPlayer->GetCharacter();
+	if (!pStartingChar || pStartingChar->m_DDRaceState == DDRACE_FINISHED)
+		return;
+
+	SetDDRaceState(pPlayer, DDRACE_STARTED);
+	pStartingChar->m_StartTime = 20*((int64)Server()->Tick()) - 20 + (int)(20*FractionOfTick);
 }
 
 void CGameTeams::OnCharacterFinish(int ClientID, float FractionOfTick)
