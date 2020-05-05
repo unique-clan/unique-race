@@ -33,6 +33,7 @@ void CGameTeams::OnCharacterStart(int ClientID, float FractionOfTick)
 	if (!pStartingChar || pStartingChar->m_DDRaceState == DDRACE_FINISHED)
 		return;
 
+	ChangeTeamState(m_Core.Team(ClientID), TEAMSTATE_STARTED);
 	SetDDRaceState(pPlayer, DDRACE_STARTED);
 	pStartingChar->m_StartTime = 20*((int64)Server()->Tick()) - 20 + (int)(20*FractionOfTick);
 }
@@ -40,8 +41,11 @@ void CGameTeams::OnCharacterStart(int ClientID, float FractionOfTick)
 void CGameTeams::OnCharacterFinish(int ClientID, float FractionOfTick)
 {
 	CPlayer* pPlayer = GetPlayer(ClientID);
-	if (pPlayer && pPlayer->IsPlaying())
-		OnFinish(pPlayer, FractionOfTick);
+	if (!pPlayer || !pPlayer->IsPlaying())
+		return;
+
+	ChangeTeamState(m_Core.Team(ClientID), TEAMSTATE_FINISHED);
+	OnFinish(pPlayer, FractionOfTick);
 }
 
 bool CGameTeams::SetCharacterTeam(int ClientID, int Team)
