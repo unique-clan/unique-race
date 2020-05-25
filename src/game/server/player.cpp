@@ -867,7 +867,13 @@ static StdSkin g_StdSkins[] = {
 {"toptri",{"standard","toptri","","standard","standard","standard"},{true,false,false,true,true,false},{6119331,0,0,3640746,5792119,0}},
 {"twinbop",{"standard","duodonny","twinbopp","standard","standard","standard"},{true,true,true,true,true,false},{15310519,-1600806,15310519,15310519,37600,0}},
 {"twintri",{"standard","twintri","","standard","standard","standard"},{true,true,false,true,true,false},{3447932,-14098717,0,185,9634888,0}},
-{"warpaint",{"standard","warpaint","","standard","standard","standard"},{true,false,false,true,true,false},{1944919,0,0,750337,1944919,0}}};
+{"warpaint",{"standard","warpaint","","standard","standard","standard"},{true,false,false,true,true,false},{1944919,0,0,750337,1944919,0}},
+/* non-standard 0.6 skins that are part of vanilla 0.7 */
+{"greensward",{"spiky","duodonny","","standard","standard","standard"},{true,true,false,true,true,true},{4959008,1616196797,0,5599232,5592988,1880670}},
+{"greyfox",{"fox","cammostripes","","standard","standard","colorable"},{true,true,false,true,true,true},{1051203,538383807,0,10230803,2100280,1858113}},
+{"monkey",{"monkey","monkey","hair","standard","standard","standard"},{true,true,true,true,true,false},{1421252,-15301582,2352795,1659536,1274287,0}},
+{"pandabear",{"bear","panda1","hair","standard","standard","standard"},{true,true,false,true,true,true},{9834574,-6411543,0,1769630,1835070,41215}},
+{"tiger",{"kitty","tiger1","","standard","standard","colorable"},{true,true,false,true,true,true},{1495659,-602669093,0,1487971,1495666,1900288}}};
 
 void CPlayer::SkinToSixup()
 {
@@ -880,7 +886,7 @@ void CPlayer::SkinToSixup()
 	}
 
 	// check for std skin
-	for(int s = 0; s < 16; s++)
+	for(int s = 0; s < 16 + 5; s++)
 	{
 		if(!str_comp(m_TeeInfos.m_SkinName, g_StdSkins[s].m_SkinName))
 		{
@@ -918,7 +924,7 @@ void CPlayer::SkinFromSixup()
 	m_TeeInfos.m_ColorFeet = 0;
 
 	// check for std skin
-	for(int s = 0; s < 16; s++)
+	for(int s = 0; s < 16 + 5; s++)
 	{
 		bool match = true;
 		for(int p = 0; p < 6; p++)
