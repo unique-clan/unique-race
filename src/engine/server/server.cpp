@@ -1289,7 +1289,9 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		}
 		else if(Msg == NETMSG_RCON_AUTH)
 		{
-			const char *pName = Unpacker.GetString(CUnpacker::SANITIZE_CC); // login name, now used
+			const char *pName = "";
+			if(!m_aClients[ClientID].m_Sixup)
+				pName = Unpacker.GetString(CUnpacker::SANITIZE_CC); // login name, now used
 			const char *pPw = Unpacker.GetString(CUnpacker::SANITIZE_CC);
 			if(!str_utf8_check(pPw) || !str_utf8_check(pName))
 			{
@@ -1321,14 +1323,22 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				{
 					if(m_aClients[ClientID].m_Authed != AuthLevel)
 					{
-						CMsgPacker Msg(NETMSG_RCON_AUTH_STATUS);
-						Msg.AddInt(1);	//authed
-						Msg.AddInt(1);	//cmdlist
-						SendMsgEx(&Msg, MSGFLAG_VITAL, ClientID, true);
+						if(m_aClients[ClientID].m_Sixup)
+						{
+							CMsgPacker Msg(11 + 26); // NETMSG_RCON_AUTH_ON
+							SendMsgEx(&Msg, MSGFLAG_VITAL, ClientID, true);
+						}
+						else
+						{
+							CMsgPacker Msg(NETMSG_RCON_AUTH_STATUS);
+							Msg.AddInt(1);	//authed
+							Msg.AddInt(1);	//cmdlist
+							SendMsgEx(&Msg, MSGFLAG_VITAL, ClientID, true);
+						}
 
 						m_aClients[ClientID].m_Authed = AuthLevel; // Keeping m_Authed around is unwise...
 						m_aClients[ClientID].m_AuthKey = KeySlot;
-						int SendRconCmds = Unpacker.GetInt();
+						int SendRconCmds = m_aClients[ClientID].m_Sixup ? true : Unpacker.GetInt();
 						if(Unpacker.Error() == 0 && SendRconCmds)
 							// AUTHED_ADMIN - AuthLevel gets the proper IConsole::ACCESS_LEVEL_<x>
 							m_aClients[ClientID].m_pRconCmdToSend = Console()->FirstCommandInfo(AUTHED_ADMIN - AuthLevel, CFGFLAG_SERVER);
@@ -2817,10 +2827,18 @@ void CServer::ConchainConsoleOutputLevelUpdate(IConsole::IResult *pResult, void 
 
 void CServer::LogoutClient(int ClientID, const char *pReason)
 {
-	CMsgPacker Msg(NETMSG_RCON_AUTH_STATUS);
-	Msg.AddInt(0);	//authed
-	Msg.AddInt(0);	//cmdlist
-	SendMsgEx(&Msg, MSGFLAG_VITAL, ClientID, true);
+	if(m_aClients[ClientID].m_Sixup)
+	{
+		CMsgPacker Msg(12 + 26); // NETMSG_RCON_AUTH_OFF
+		SendMsgEx(&Msg, MSGFLAG_VITAL, ClientID, true);
+	}
+	else
+	{
+		CMsgPacker Msg(NETMSG_RCON_AUTH_STATUS);
+		Msg.AddInt(0);	//authed
+		Msg.AddInt(0);	//cmdlist
+		SendMsgEx(&Msg, MSGFLAG_VITAL, ClientID, true);
+	}
 
 	m_aClients[ClientID].m_AuthTries = 0;
 	m_aClients[ClientID].m_pRconCmdToSend = 0;

@@ -85,10 +85,14 @@ static unsigned char MsgTypeToSixup(unsigned char Byte)
 			Six = Msg;
 		else if(Msg >= NETMSG_CON_READY && Msg <= NETMSG_INPUTTIMING)
 			Six = Msg + 1;
+		else if(Msg == NETMSG_RCON_LINE)
+			Six = 13;
 		else if(Msg >= NETMSG_AUTH_CHALLANGE && Msg <= NETMSG_AUTH_RESULT)
 			Six = Msg + 4;
 		else if(Msg >= NETMSG_PING && Msg <= NETMSG_ERROR)
 			Six = Msg + 4;
+		else if(Msg >= NETMSG_RCON_CMD_ADD && Msg <= NETMSG_RCON_CMD_REM)
+			Six = Msg - 11;
 		else if(Msg > 26)
 			Six = Msg - 26;
 		else
