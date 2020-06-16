@@ -1240,7 +1240,7 @@ void CGameContext::OnClientConnected(int ClientID)
 	}
 
 	// Check which team the player should be on
-	const int StartTeam = g_Config.m_SvTournamentMode ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
+	const int StartTeam = Server()->GetJoinSpec(ClientID) ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
 
 	if (!m_apPlayers[ClientID])
 		m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, StartTeam);
@@ -3335,6 +3335,11 @@ void CGameContext::OnMapChange(char *pNewMapName, int MapNameSize)
 
 void CGameContext::OnShutdown(bool FullShutdown)
 {
+	// determine if the player should join as spectator after the next map loads
+	for(int i = 0; i < MAX_CLIENTS; i++)
+		if(m_apPlayers[i])
+			Server()->SetJoinSpec(i, m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS || m_apPlayers[i]->m_Afk);
+
 	if (FullShutdown)
 		Score()->OnShutdown();
 

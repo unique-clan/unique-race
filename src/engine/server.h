@@ -193,6 +193,8 @@ public:
 	virtual void SetErrorShutdown(const char *pReason) = 0;
 
 	virtual bool IsSixup(int ClientID) = 0;
+	virtual bool GetJoinSpec(int ClientID) = 0;
+	virtual void SetJoinSpec(int ClientID, bool JoinSpec) = 0;
 };
 
 class IGameServer : public IInterface

@@ -181,6 +181,7 @@ public:
 		std::shared_ptr<CHostLookup> m_pDnsblLookup;
 
 		bool m_Sixup;
+		bool m_JoinSpec;
 	};
 
 	CClient m_aClients[MAX_CLIENTS];
@@ -395,6 +396,8 @@ public:
 	void SetErrorShutdown(const char *pReason);
 
 	bool IsSixup(int ClientID) { return m_aClients[ClientID].m_Sixup; }
+	bool GetJoinSpec(int ClientID) { return m_aClients[ClientID].m_JoinSpec; }
+	void SetJoinSpec(int ClientID, bool JoinSpec) { m_aClients[ClientID].m_JoinSpec = JoinSpec; }
 
 #ifdef CONF_FAMILY_UNIX
 	enum CONN_LOGGING_CMD

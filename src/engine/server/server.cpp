@@ -818,6 +818,7 @@ int CServer::NewClientCallback(int ClientID, void *pUser, bool Sixup)
 	pThis->GameServer()->OnClientEngineJoin(ClientID);
 
 	pThis->m_aClients[ClientID].m_Sixup = Sixup;
+	pThis->m_aClients[ClientID].m_JoinSpec = g_Config.m_SvTournamentMode;
 
 #if defined(CONF_FAMILY_UNIX)
 	pThis->SendConnLoggingCommand(OPEN_SESSION, pThis->m_NetServer.ClientAddr(ClientID));
@@ -895,6 +896,7 @@ int CServer::DelClientCallback(int ClientID, const char *pReason, void *pUser)
 	pThis->m_aClients[ClientID].m_Traffic = 0;
 	pThis->m_aClients[ClientID].m_TrafficSince = 0;
 	pThis->m_aClients[ClientID].m_Sixup = false;
+	pThis->m_aClients[ClientID].m_JoinSpec = false;
 	pThis->m_aPrevStates[ClientID] = CClient::STATE_EMPTY;
 	pThis->m_aClients[ClientID].m_Snapshots.PurgeAll();
 
