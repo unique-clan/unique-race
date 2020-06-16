@@ -1127,7 +1127,7 @@ void CGameContext::OnClientEnter(int ClientID)
 
 	if(Server()->IsSixup(ClientID))
 	{
-		CMsgPacker Msg(19 + 24); // NETMSGTYPE_SV_GAMEINFO
+		CMsgPacker Msg(19 + 26); // NETMSGTYPE_SV_GAMEINFO
 		Msg.AddInt(GAMEFLAG_FLAGS | (1<<3)/* GAMEFLAG_RACE */); // m_GameFlags
 		Msg.AddInt(0); // m_ScoreLimit
 		Msg.AddInt(0); // m_TimeLimit
@@ -1168,7 +1168,7 @@ void CGameContext::OnClientEnter(int ClientID)
 		if(Server()->IsSixup(i))
 		{
 			// new info for others
-			CMsgPacker NewClientInfoMsg(18 + 24); // NETMSGTYPE_SV_CLIENTINFO
+			CMsgPacker NewClientInfoMsg(18 + 26); // NETMSGTYPE_SV_CLIENTINFO
 			NewClientInfoMsg.AddInt(ClientID);
 			NewClientInfoMsg.AddInt(0); // m_Local
 			NewClientInfoMsg.AddInt(m_apPlayers[ClientID]->GetTeam());
@@ -1186,7 +1186,7 @@ void CGameContext::OnClientEnter(int ClientID)
 		if(Server()->IsSixup(ClientID))
 		{
 			// existing infos for new player
-			CMsgPacker ClientInfoMsg(18 + 24); // NETMSGTYPE_SV_CLIENTINFO
+			CMsgPacker ClientInfoMsg(18 + 26); // NETMSGTYPE_SV_CLIENTINFO
 			ClientInfoMsg.AddInt(i);
 			ClientInfoMsg.AddInt(0); // m_Local
 			ClientInfoMsg.AddInt(m_apPlayers[i]->GetTeam());
@@ -1205,7 +1205,7 @@ void CGameContext::OnClientEnter(int ClientID)
 	// local info
 	if(Server()->IsSixup(ClientID))
 	{
-		CMsgPacker SelfClientInfoMsg(18 + 24); // NETMSGTYPE_SV_CLIENTINFO
+		CMsgPacker SelfClientInfoMsg(18 + 26); // NETMSGTYPE_SV_CLIENTINFO
 		SelfClientInfoMsg.AddInt(ClientID);
 		SelfClientInfoMsg.AddInt(1); // m_Local
 		SelfClientInfoMsg.AddInt(m_apPlayers[ClientID]->GetTeam());
@@ -1273,7 +1273,7 @@ void CGameContext::OnClientConnected(int ClientID)
 	// send settings
 	if(Server()->IsSixup(ClientID))
 	{
-		CMsgPacker Msg(17 + 24); // NETMSGTYPE_SV_SERVERSETTINGS
+		CMsgPacker Msg(17 + 26); // NETMSGTYPE_SV_SERVERSETTINGS
 		Msg.AddInt(g_Config.m_SvVoteKick);
 		Msg.AddInt(g_Config.m_SvVoteKickMin);
 		Msg.AddInt(g_Config.m_SvVoteSpectate);
@@ -1298,7 +1298,7 @@ void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 		{
 			if(Server()->ClientIngame(i) && Server()->IsSixup(i))
 			{
-				CMsgPacker Msg(20 + 24); // NETMSGTYPE_SV_CLIENTDROP
+				CMsgPacker Msg(20 + 26); // NETMSGTYPE_SV_CLIENTDROP
 				Msg.AddInt(ClientID);
 				Msg.AddString(pReason, -1);
 				Msg.AddInt(0); // m_Silent
@@ -2039,14 +2039,14 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			{
 				if(Server()->ClientIngame(i) && Server()->IsSixup(i))
 				{
-					CMsgPacker Msg(20 + 24); // NETMSGTYPE_SV_CLIENTDROP
+					CMsgPacker Msg(20 + 26); // NETMSGTYPE_SV_CLIENTDROP
 					Msg.AddInt(ClientID);
 					Msg.AddString("", -1); // m_pReason
 					Msg.AddInt(1); // m_Silent
 
 					Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
 
-					CMsgPacker ClientInfoMsg(18 + 24); // NETMSGTYPE_SV_CLIENTINFO
+					CMsgPacker ClientInfoMsg(18 + 26); // NETMSGTYPE_SV_CLIENTINFO
 					ClientInfoMsg.AddInt(ClientID);
 					ClientInfoMsg.AddInt(0); // m_Local
 					ClientInfoMsg.AddInt(m_apPlayers[ClientID]->GetTeam());
@@ -3931,7 +3931,7 @@ void CGameContext::SendSixupSkinChange(int Changer)
 	{
 		if(Server()->ClientIngame(i) && Server()->IsSixup(i))
 		{
-			CMsgPacker Msg(33 + 24 + 64); // NETMSGTYPE_SV_SKINCHANGE
+			CMsgPacker Msg(33 + 26 + 64); // NETMSGTYPE_SV_SKINCHANGE
 			Msg.AddInt(Changer);
 			for(int p = 0; p < 6; p++) Msg.AddString(m_apPlayers[Changer]->m_TeeInfos.m_apSkinPartNames[p], -1);
 			for(int p = 0; p < 6; p++) Msg.AddInt(m_apPlayers[Changer]->m_TeeInfos.m_aUseCustomColors[p]);

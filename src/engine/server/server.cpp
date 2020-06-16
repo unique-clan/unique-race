@@ -1198,7 +1198,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				m_aClients[ClientID].m_State = CClient::STATE_INGAME;
 				if(m_aClients[ClientID].m_Sixup)
 				{
-					CMsgPacker Msg(4 + 24); // NETMSG_SERVERINFO
+					CMsgPacker Msg(4 + 26); // NETMSG_SERVERINFO
 					GenerateServerInfoSixup(&Msg, -1);
 					SendMsgEx(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH|MSGFLAG_NORECORD, ClientID, true);
 				}
@@ -1671,7 +1671,7 @@ void CServer::UpdateServerInfo()
 		{
 			if(m_aClients[i].m_Sixup)
 			{
-				CMsgPacker Msg(4 + 24); // NETMSG_SERVERINFO
+				CMsgPacker Msg(4 + 26); // NETMSG_SERVERINFO
 				GenerateServerInfoSixup(&Msg, -1);
 				SendMsgEx(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH|MSGFLAG_NORECORD, i, true);
 			}

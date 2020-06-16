@@ -979,7 +979,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 			m_Health -= Dmg;
 		}
 
-		int *pEvent = (int*)GameServer()->m_Events.Create(22 + 24, 7*4, GameServer()->SixupMask() & Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID())); // NETEVENTTYPE_DAMAGE
+		int *pEvent = (int*)GameServer()->m_Events.Create(22 + 26, 7*4, GameServer()->SixupMask() & Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID())); // NETEVENTTYPE_DAMAGE
 		if(pEvent)
 		{
 			pEvent[0] = (int)m_Pos.x;
@@ -1174,7 +1174,7 @@ void CCharacter::Snap(int SnappingClient)
 
 	if(Server()->IsSixup(SnappingClient) && m_DDRaceState == DDRACE_STARTED)
 	{
-		int *pPlayerInfoRace = (int*)Server()->SnapNewItem(23 + 24, id, 1*4);
+		int *pPlayerInfoRace = (int*)Server()->SnapNewItem(23 + 26, id, 1*4); // NETOBJTYPE_PLAYERINFORACE
 		pPlayerInfoRace[0] = m_StartTime/20;
 	}
 }
@@ -1416,7 +1416,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 			{
 				if(pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
 				{
-					CMsgPacker Msg(36 + 24 + 64); // NETMSGTYPE_SV_CHECKPOINT
+					CMsgPacker Msg(36 + 26 + 64); // NETMSGTYPE_SV_CHECKPOINT
 					Msg.AddInt((m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive])*1000); // m_Diff
 					Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, m_pPlayer->GetCID());
 				}
@@ -1454,7 +1454,7 @@ void CCharacter::HandleTiles(int Index, float FractionOfTick)
 			{
 				if(pData->m_BestTime && pData->m_aBestCpTime[m_CpActive] != 0)
 				{
-					CMsgPacker Msg(36 + 24 + 64); // NETMSGTYPE_SV_CHECKPOINT
+					CMsgPacker Msg(36 + 26 + 64); // NETMSGTYPE_SV_CHECKPOINT
 					Msg.AddInt((m_CpCurrent[m_CpActive] - pData->m_aBestCpTime[m_CpActive])*1000); // m_Diff
 					Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, m_pPlayer->GetCID());
 				}

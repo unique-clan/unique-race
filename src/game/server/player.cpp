@@ -593,7 +593,7 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	{
 		if(Server()->ClientIngame(i) && Server()->IsSixup(i))
 		{
-			CMsgPacker Msg(4 + 24); // NETMSGTYPE_SV_TEAM
+			CMsgPacker Msg(4 + 26); // NETMSGTYPE_SV_TEAM
 			Msg.AddInt(m_ClientID);
 			Msg.AddInt(m_Team);
 			Msg.AddInt(!DoChatMsg); // m_Silent

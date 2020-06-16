@@ -19,8 +19,8 @@ static int ObjTypeToSixup(int Type)
 		Six = Type + 3;
 	else if(Type == NETEVENTTYPE_SOUNDWORLD)
 		Six = Type + 2;
-	else if(Type > 24)
-		Six = Type - 24;
+	else if(Type > 26)
+		Six = Type - 26;
 	else
 		return -1;
 	return Six;

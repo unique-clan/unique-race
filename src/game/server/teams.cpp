@@ -411,7 +411,7 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 	{
 		if(Server()->IsSixup(i))
 		{
-			CMsgPacker Msg(35 + 24 + 64); // NETMSGTYPE_SV_RACEFINISH
+			CMsgPacker Msg(35 + 26 + 64); // NETMSGTYPE_SV_RACEFINISH
 			Msg.AddInt(Player->GetCID());
 			Msg.AddInt(round_to_int(Time * 1000));
 			Msg.AddInt(round_to_int(SignedDiff * 1000));

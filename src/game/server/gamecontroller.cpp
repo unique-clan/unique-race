@@ -806,7 +806,7 @@ void IGameController::Snap(int SnappingClient)
 
 	if(Server()->IsSixup(SnappingClient))
 	{
-		int *pGameData = (int*)Server()->SnapNewItem(6 + 24, 0, 3*4); // NETOBJTYPE_GAMEDATA
+		int *pGameData = (int*)Server()->SnapNewItem(6 + 26, 0, 3*4); // NETOBJTYPE_GAMEDATA
 		if(!pGameData)
 			return;
 
@@ -820,7 +820,7 @@ void IGameController::Snap(int SnappingClient)
 			pGameData[1] |= (1<<4); // GAMESTATEFLAG_PAUSED
 		pGameData[2] = 0; // m_GameStateEndTick
 
-		int *pGameDataRace = (int*)Server()->SnapNewItem(24 + 24, 0, 3*4); // NETOBJTYPE_GAMEDATARACE
+		int *pGameDataRace = (int*)Server()->SnapNewItem(24 + 26, 0, 3*4); // NETOBJTYPE_GAMEDATARACE
 		if(!pGameDataRace)
 			return;
 
@@ -1093,7 +1093,7 @@ void IGameController::SnapFlags(int SnappingClient)
 {
 	if(Server()->IsSixup(SnappingClient))
 	{
-		int *pGameDataFlag = (int*)Server()->SnapNewItem(8 + 24, 0, 4*4); // NETOBJTYPE_GAMEDATAFLAG
+		int *pGameDataFlag = (int*)Server()->SnapNewItem(8 + 26, 0, 4*4); // NETOBJTYPE_GAMEDATAFLAG
 		pGameDataFlag[0] = SnapFastcapFlag(SnappingClient);
 		pGameDataFlag[1] = SnapRecordFlag(SnappingClient);
 		pGameDataFlag[2] = 0; // m_FlagDropTickRed

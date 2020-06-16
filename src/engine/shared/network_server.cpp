@@ -89,8 +89,8 @@ static unsigned char MsgTypeToSixup(unsigned char Byte)
 			Six = Msg + 4;
 		else if(Msg >= NETMSG_PING && Msg <= NETMSG_ERROR)
 			Six = Msg + 4;
-		else if(Msg > 24)
-			Six = Msg - 24;
+		else if(Msg > 26)
+			Six = Msg - 26;
 		else
 			return 0;
 	}
@@ -102,8 +102,8 @@ static unsigned char MsgTypeToSixup(unsigned char Byte)
 			Six = Msg + 1;
 		else if(Msg >= NETMSGTYPE_SV_TUNEPARAMS && Msg <= NETMSGTYPE_SV_VOTESTATUS)
 			Six = Msg;
-		else if(Msg > 24)
-			Six = Msg - 24;
+		else if(Msg > 26)
+			Six = Msg - 26;
 		else
 			return 0;
 	}
