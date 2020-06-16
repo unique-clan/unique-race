@@ -2274,11 +2274,11 @@ void CServer::StatusImpl(IConsole::IResult *pResult, void *pUser, bool DnsblBlac
 					str_format(aAuthStr, sizeof(aAuthStr), "key=%s %s", pThis->m_AuthManager.KeyIdent(pThis->m_aClients[i].m_AuthKey), pAuthStr);
 
 				if(CanSeeAddress)
-					str_format(aBuf, sizeof(aBuf), "id=%d addr=%s name='%s' score=%d client=%d secure=%s %s", i, aAddrStr,
-						pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Score, pThis->GameServer()->GetClientVersion(i), pThis->m_NetServer.HasSecurityToken(i) ? "yes" : "no", aAuthStr);
+					str_format(aBuf, sizeof(aBuf), "id=%d addr=%s name='%s' sixup=%s score=%d client=%d secure=%s %s", i, aAddrStr,
+						pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Sixup ? "yes" : "no", pThis->m_aClients[i].m_Score, pThis->GameServer()->GetClientVersion(i), pThis->m_NetServer.HasSecurityToken(i) ? "yes" : "no", aAuthStr);
 				else
-					str_format(aBuf, sizeof(aBuf), "id=%d name='%s' score=%d client=%d secure=%s %s", i,
-						pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Score, pThis->GameServer()->GetClientVersion(i), pThis->m_NetServer.HasSecurityToken(i) ? "yes" : "no", aAuthStr);
+					str_format(aBuf, sizeof(aBuf), "id=%d name='%s' sixup=%s score=%d client=%d secure=%s %s", i,
+						pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Sixup ? "yes" : "no", pThis->m_aClients[i].m_Score, pThis->GameServer()->GetClientVersion(i), pThis->m_NetServer.HasSecurityToken(i) ? "yes" : "no", aAuthStr);
 			}
 			else
 			{
