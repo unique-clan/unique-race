@@ -1514,7 +1514,7 @@ void CServer::SendServerInfo(const NETADDR *pAddr, int Token, int Type, bool Sen
 	{
 		if(m_aClients[i].m_State == CClient::STATE_EMPTY)
 			continue;
-		if(GameServer()->GetClientVersion(i) == 0 || GameServer()->GetClientVersion(i) >= 11030)
+		if(GameServer()->GetClientVersion(i) == 0)
 			continue;
 		NETADDR Addr1 = *pAddr;
 		NETADDR Addr2 = *m_NetServer.ClientAddr(i);
