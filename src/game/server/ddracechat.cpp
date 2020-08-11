@@ -1266,6 +1266,31 @@ void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 	pChr->Rescue();
 }
 
+void CGameContext::ConProtectedKill(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *) pUserData;
+	if (!CheckClientID(pResult->m_ClientID))
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
+	if (!pPlayer)
+		return;
+	CCharacter* pChr = pPlayer->GetCharacter();
+	if (!pChr)
+		return;
+
+	int CurrTime = (pSelf->Server()->Tick() - pChr->m_StartTime/20) / pSelf->Server()->TickSpeed();
+	if(g_Config.m_SvKillProtection != 0 && CurrTime >= (60 * g_Config.m_SvKillProtection) && pChr->m_DDRaceState == DDRACE_STARTED)
+	{
+			pPlayer->KillCharacter(WEAPON_SELF);
+
+			//char aBuf[64];
+			//str_format(aBuf, sizeof(aBuf), "You killed yourself in: %s%d:%s%d",
+			//		((CurrTime / 60) > 9) ? "" : "0", CurrTime / 60,
+			//		((CurrTime % 60) > 9) ? "" : "0", CurrTime % 60);
+			//pSelf->SendChatTarget(pResult->m_ClientID, aBuf);
+	}
+}
+
 void CGameContext::ConModhelp(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *) pUserData;
