@@ -69,6 +69,8 @@ static unsigned char MsgTypeFromSixup(unsigned char Byte)
 			Msg = NETMSGTYPE_CL_EMOTICON + Six - 30;
 		else if(Six == 34) // NETMSGTYPE_CL_SKINCHANGE
 			Msg = 27;
+		else if(Six == 39) // NETMSGTYPE_CL_COMMAND
+			Msg = 28;
 		else
 			return 0;
 	}

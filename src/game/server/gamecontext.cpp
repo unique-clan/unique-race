@@ -1134,6 +1134,16 @@ void CGameContext::OnClientEnter(int ClientID)
 		Msg.AddInt(0); // m_MatchNum
 		Msg.AddInt(1); // m_MatchCurrent
 		Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, ClientID);
+
+		for(const IConsole::CCommandInfo *pCmd = Console()->FirstCommandInfo(IConsole::ACCESS_LEVEL_USER, CFGFLAG_CHAT);
+				pCmd; pCmd = pCmd->NextCommandInfo(IConsole::ACCESS_LEVEL_USER, CFGFLAG_CHAT))
+		{
+			CMsgPacker Msg(37 + 26 + 64); // NETMSGTYPE_SV_COMMANDINFO
+			Msg.AddString(pCmd->m_pName, -1);
+			Msg.AddString(pCmd->m_pParams, -1);
+			Msg.AddString(pCmd->m_pHelp, -1);
+			Server()->SendMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, ClientID);
+		}
 	}
 
 	if(!Server()->ClientPrevIngame(ClientID))
@@ -1347,7 +1357,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 	void *pRawMsg = 0;
 	CPlayer *pPlayer = m_apPlayers[ClientID];
 
-	if(MsgID != NETMSGTYPE_CL_STARTINFO && MsgID != NETMSGTYPE_CL_SETSPECTATORMODE && MsgID != NETMSGTYPE_CL_SAY && MsgID != 27)
+	if(MsgID != NETMSGTYPE_CL_STARTINFO && MsgID != NETMSGTYPE_CL_SETSPECTATORMODE && MsgID != NETMSGTYPE_CL_SAY && MsgID != 27 && MsgID != 28)
 	{
 		pRawMsg = m_NetObjHandler.SecureUnpackMsg(MsgID, pUnpacker);
 		if(!pRawMsg)
@@ -1364,22 +1374,32 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 	if(Server()->ClientIngame(ClientID))
 	{
-		if(MsgID == NETMSGTYPE_CL_SAY)
+		if(MsgID == NETMSGTYPE_CL_SAY || (MsgID == 28 && Server()->IsSixup(ClientID)))
 		{
 			CNetMsg_Cl_Say Msg;
+			char aBuf[1024];
 			int Mode = 0;
 			int Target = 0;
-			if(Server()->IsSixup(ClientID))
+			if(MsgID == 28 && Server()->IsSixup(ClientID)) // NETMSGTYPE_CL_COMMAND
+			{
+				const char *Name = pUnpacker->GetString(CUnpacker::SANITIZE_CC);
+				const char *Args = pUnpacker->GetString(CUnpacker::SANITIZE_CC);
+				str_format(aBuf, sizeof(aBuf), "/%s %s", Name, Args);
+				Msg.m_Team = 0;
+				Msg.m_pMessage = aBuf;
+			}
+			else if(Server()->IsSixup(ClientID))
 			{
 				Mode = pUnpacker->GetInt();
 				Target = pUnpacker->GetInt();
 				Msg.m_Team = Mode == 2; // CHAT_TEAM
+				Msg.m_pMessage = pUnpacker->GetString(CUnpacker::SANITIZE_CC);
 			}
 			else
 			{
 				Msg.m_Team = pUnpacker->GetInt();
+				Msg.m_pMessage = pUnpacker->GetString(CUnpacker::SANITIZE_CC);
 			}
-			Msg.m_pMessage = pUnpacker->GetString(CUnpacker::SANITIZE_CC);
 
 			if(pUnpacker->Error())
 				return;
