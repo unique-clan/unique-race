@@ -308,10 +308,18 @@ void CGameTeams::OnFinish(CPlayer* Player, float FractionOfTick)
 			GameServer()->SendChatTarget(i, aBuf);
 	if(!Server()->IsSixup(Player->GetCID()))
 	{
-		int GhostTimeStartLength = str_length(Server()->ClientName(Player->GetCID())) + 13;
+		int NameLen = str_length(Server()->ClientName(Player->GetCID()));
+		int GhostTimeStartLength = NameLen + 13;
 		for (int i = 0; i < 256-GhostTimeStartLength; i++)
 			aBuf[GhostTimeStartLength+i] = ' ';
-		str_format(aBuf+256, 256,
+		int CorrectForUtf8 = NameLen;
+		const char *ptr = Server()->ClientName(Player->GetCID());
+		while(*ptr) {
+			str_utf8_decode(&ptr);
+			CorrectForUtf8--;
+		}
+		dbg_msg("correct", "%d", CorrectForUtf8);
+		str_format(aBuf+256+CorrectForUtf8, 256-CorrectForUtf8,
 				"%d minute(s) %.3f second(s)",
 				(int)Time / 60, Time - ((int)Time / 60 * 60));
 		GameServer()->SendChatTarget(Player->GetCID(), aBuf);
