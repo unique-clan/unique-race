@@ -12,6 +12,9 @@
 CGameControllerDDRace::CGameControllerDDRace(class CGameContext *pGameServer) :
 		IGameController(pGameServer), m_Teams(pGameServer)
 {
+	SetGameType();
+
+	InitTeleporter();
 }
 
 CGameControllerDDRace::~CGameControllerDDRace()

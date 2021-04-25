@@ -2909,31 +2909,12 @@ void CGameContext::OnConsoleInit()
 	#include "ddracechat.h"
 }
 
-void CGameContext::OnInit(bool FirstInit)
+void CGameContext::OnInit(/*class IKernel *pKernel*/)
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
 	m_pEngine = Kernel()->RequestInterface<IEngine>();
 	m_pStorage = Kernel()->RequestInterface<IStorage>();
-
-	m_pController = new CGameControllerDDRace(this);
-
-	// delete old score object
-	if(m_pScore)
-		delete m_pScore;
-
-	// create score object (add sql later)
-#if defined(CONF_SQL)
-	if(g_Config.m_SvUseSQL) {
-		m_pScore = new CSqlScore(this);
-		if(FirstInit)
-			m_pScore->RandomMap(-2, 0);
-	} else
-#endif
-		m_pScore = new CFileScore(this);
-	if(FirstInit)
-		return;
-
 	m_World.SetGameServer(this);
 	m_Events.SetGameServer(this);
 
@@ -3013,12 +2994,11 @@ void CGameContext::OnInit(bool FirstInit)
 	Console()->ExecuteFile(g_Config.m_SvResetFile, -1);
 
 	LoadMapSettings();
-	((CGameControllerDDRace*)m_pController)->SetGameType();
 
 	m_MapBugs.Dump();
 
+	m_pController = new CGameControllerDDRace(this);
 	((CGameControllerDDRace*)m_pController)->m_Teams.Reset();
-	((CGameControllerDDRace*)m_pController)->InitTeleporter();
 
 	m_TeeHistorianActive = g_Config.m_SvTeeHistorian;
 	if(m_TeeHistorianActive)
@@ -3095,6 +3075,17 @@ void CGameContext::OnInit(bool FirstInit)
 		}
 	}
 
+	// delete old score object
+	if(m_pScore)
+		delete m_pScore;
+
+	// create score object (add sql later)
+#if defined(CONF_SQL)
+	if(g_Config.m_SvUseSQL)
+		m_pScore = new CSqlScore(this);
+	else
+#endif
+		m_pScore = new CFileScore(this);
 	// setup core world
 	//for(int i = 0; i < MAX_CLIENTS; i++)
 	//	game.players[i].core.world = &game.world.core;
