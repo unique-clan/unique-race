@@ -2140,7 +2140,7 @@ void CCharacter::DDRacePostCoreTick()
 			HandleTiles(i->first, i->second);
 	else
 	{
-		//HandleTiles(CurrentIndex);
+		HandleTiles(CurrentIndex, 1.0f);
 	}
 
 	HandleSkippableTiles(CurrentIndex);
