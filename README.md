@@ -24,3 +24,7 @@ On Arch Linux install `mingw-w64-gcc`.
     cd buildwin
     cmake -DCLIENT=OFF -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/mingw64.toolchain ..
     make -j$(nproc) DDNet-Server
+
+Copy to server for download.
+
+    scp DDNet-Server.exe uniqueweb@uniqueclan.net:unique-web/public/UniqueRaceServer.exe
