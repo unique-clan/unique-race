@@ -1862,7 +1862,11 @@ int CServer::LoadMap(const char *pMapName)
 		return 0;
 	CDataFileReader SixupMap;
 	if(!SixupMap.Open(Storage(), aSixup, IStorage::TYPE_ALL))
-		return 0;
+	{
+		// Use 0.6 map if 0.7 map isn't available
+		if(!SixupMap.Open(Storage(), aBuf, IStorage::TYPE_ALL))
+			return 0;
+	}
 
 	// stop recording when we change map
 	for(int i = 0; i < MAX_CLIENTS+1; i++)

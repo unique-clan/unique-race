@@ -14,3 +14,13 @@ To compile Unique Race, execute the following commands in the source root:
     make -j$(nproc) DDNet-Server
 
 On Arch Linux the MariaDB C++ connector is available as the AUR package `mysql-connector-c++`.
+
+Cross-compiling for Windows
+---------------------------
+
+On Arch Linux install `mingw-w64-gcc`.
+
+    mkdir buildwin
+    cd buildwin
+    cmake -DCLIENT=OFF -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/mingw64.toolchain ..
+    make -j$(nproc) DDNet-Server

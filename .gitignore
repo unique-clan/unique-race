@@ -33,6 +33,7 @@ pack_*/
 rules.ninja
 testrunner\[1\]_include.cmake
 autoexec.cfg
+.ccls-cache/
 
 # Ignore all the generated executables without extensions (for non-Windows
 # systems).
