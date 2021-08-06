@@ -275,6 +275,9 @@ CServer::CServer() : m_Register(false), m_RegSixup(true)
 	m_pCurrentMapData = 0;
 	m_CurrentMapSize = 0;
 
+	m_pSixupMapData = 0;
+	m_SixupMapSize = 0;
+
 	m_MapReload = 0;
 	m_ReloadedWhenEmpty = false;
 
@@ -1919,7 +1922,6 @@ int CServer::LoadMap(const char *pMapName)
 	{
 		IOHANDLE File = SixupMap.File();
 		m_SixupMapSize = (unsigned int)io_length(File);
-		free(m_pSixupMapData);
 		m_pSixupMapData = (unsigned char *)malloc(m_SixupMapSize);
 		io_read(File, m_pSixupMapData, m_SixupMapSize);
 	}
