@@ -1022,24 +1022,29 @@ void IGameController::UpdateRecordFlag()
 
 int IGameController::SnapRecordFlag(int SnappingClient)
 {
-	CCharacter *pRecordFlagChar = GameServer()->m_pController->m_pRecordFlagChar;
-	if(!pRecordFlagChar)
+	if (!m_pRecordFlagChar)
 		return FLAG_MISSING;
-	if(!GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers && pRecordFlagChar->GetPlayer()->GetCID() != SnappingClient && GameServer()->m_apPlayers[SnappingClient]->GetTeam() != TEAM_SPECTATORS)
+
+	CPlayer *pRecordFlagCarrier = m_pRecordFlagChar->GetPlayer();
+	CPlayer* pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
+
+	if (pSnapPlayer->GetCharacter() && pSnapPlayer->GetCharacter()->NetworkClipped(SnappingClient, m_pRecordFlagChar->m_Pos))
 		return FLAG_MISSING;
-	if(pRecordFlagChar->GetPlayer()->GetCID() == SnappingClient && !pRecordFlagChar->GetPlayer()->m_ShowFlag)
+	if(!pSnapPlayer->m_ShowOthers && pRecordFlagCarrier->GetCID() != SnappingClient && pSnapPlayer->GetTeam() != TEAM_SPECTATORS)
 		return FLAG_MISSING;
-	if(pRecordFlagChar->GetPlayer()->GetCID() == SnappingClient && !pRecordFlagChar->GetPlayer()->m_ShowOthers && pRecordFlagChar->GetPlayer()->IsPaused() && pRecordFlagChar->GetPlayer()->m_SpectatorID != SPEC_FREEVIEW)
+	if(pRecordFlagCarrier->GetCID() == SnappingClient && !pRecordFlagCarrier->m_ShowFlag)
+		return FLAG_MISSING;
+	if(pRecordFlagCarrier->GetCID() == SnappingClient && !pRecordFlagCarrier->m_ShowOthers && pRecordFlagCarrier->IsPaused() && pRecordFlagCarrier->m_SpectatorID != SPEC_FREEVIEW)
 		return FLAG_MISSING;
 
 	CNetObj_Flag *pFlag = (CNetObj_Flag *)Server()->SnapNewItem(NETOBJTYPE_FLAG, TEAM_BLUE, sizeof(CNetObj_Flag));
 	if(!pFlag)
 		return FLAG_MISSING;
-	pFlag->m_X = (int)pRecordFlagChar->m_Pos.x;
-	pFlag->m_Y = (int)pRecordFlagChar->m_Pos.y;
+	pFlag->m_X = (int)m_pRecordFlagChar->m_Pos.x;
+	pFlag->m_Y = (int)m_pRecordFlagChar->m_Pos.y;
 	pFlag->m_Team = TEAM_BLUE;
 
-	return pRecordFlagChar->GetPlayer()->GetCID();
+	return pRecordFlagCarrier->GetCID();
 }
 
 int IGameController::SnapFastcapFlag(int SnappingClient)

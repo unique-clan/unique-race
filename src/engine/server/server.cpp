@@ -275,6 +275,9 @@ CServer::CServer() : m_Register(false), m_RegSixup(true)
 	m_pCurrentMapData = 0;
 	m_CurrentMapSize = 0;
 
+	m_pSixupMapData = 0;
+	m_SixupMapSize = 0;
+
 	m_MapReload = 0;
 	m_ReloadedWhenEmpty = false;
 
