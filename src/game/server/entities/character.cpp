@@ -1004,9 +1004,9 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 		}
 
 		if (Dmg > 2)
-			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG);
+			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG, TeamMask);
 		else
-			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT);
+			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT, TeamMask);
 	}
 
 	m_EmoteType = EMOTE_PAIN;
