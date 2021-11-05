@@ -940,17 +940,20 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 		Dmg = max(1, Dmg/2);
 
 		m_DamageTaken++;
+        // Calculate mask in order to prevent showing damage indicators who have showothers 0
+        int64_t TeamMask = Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID());
 
 		// create healthmod indicator
 		if(Server()->Tick() < m_DamageTakenTick+25)
 		{
 			// make sure that the damage indicators doesn't group together
-			GameServer()->CreateDamageInd(m_Pos, m_DamageTaken*0.25f, Dmg);
+
+			GameServer()->CreateDamageInd(m_Pos, m_DamageTaken*0.25f, Dmg, TeamMask);
 		}
 		else
 		{
 			m_DamageTaken = 0;
-			GameServer()->CreateDamageInd(m_Pos, 0, Dmg);
+			GameServer()->CreateDamageInd(m_Pos, 0, Dmg, TeamMask);
 		}
 
 		int OldHealth = m_Health, OldArmor = m_Armor;
@@ -979,7 +982,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 			m_Health -= Dmg;
 		}
 
-		int *pEvent = (int*)GameServer()->m_Events.Create(22 + 26, 7*4, GameServer()->SixupMask() & Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID())); // NETEVENTTYPE_DAMAGE
+		int *pEvent = (int*)GameServer()->m_Events.Create(22 + 26, 7*4, GameServer()->SixupMask() & TeamMask); // NETEVENTTYPE_DAMAGE
 		if(pEvent)
 		{
 			pEvent[0] = (int)m_Pos.x;
@@ -1001,9 +1004,9 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 		}
 
 		if (Dmg > 2)
-			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG);
+			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG, TeamMask);
 		else
-			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT);
+			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT, TeamMask);
 	}
 
 	m_EmoteType = EMOTE_PAIN;
