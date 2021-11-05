@@ -941,7 +941,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 
 		m_DamageTaken++;
         // Calculate mask in order to prevent showing damage indicators who have showothers 0
-        int64_t TeamMask = ((CGameControllerDDRace*)GameServer()->m_pController)->m_Teams.TeamMask(Team(), -1, -1);
+        int64_t TeamMask = Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID());
 
 		// create healthmod indicator
 		if(Server()->Tick() < m_DamageTakenTick+25)
@@ -982,7 +982,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 			m_Health -= Dmg;
 		}
 
-		int *pEvent = (int*)GameServer()->m_Events.Create(22 + 26, 7*4, GameServer()->SixupMask() & Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID())); // NETEVENTTYPE_DAMAGE
+		int *pEvent = (int*)GameServer()->m_Events.Create(22 + 26, 7*4, GameServer()->SixupMask() & TeamMask); // NETEVENTTYPE_DAMAGE
 		if(pEvent)
 		{
 			pEvent[0] = (int)m_Pos.x;
