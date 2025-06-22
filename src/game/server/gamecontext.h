@@ -588,6 +588,14 @@ private:
 	static void ConVoteUnmuteIp(IConsole::IResult *pResult, void *pUserData);
 	static void ConVoteMutes(IConsole::IResult *pResult, void *pUserData);
 
+	// Unique
+	static void ConShowFlag(IConsole::IResult *pResult, void *pUserData);
+	static void ConRed(IConsole::IResult *pResult, void *pUserData);
+	static void ConBlue(IConsole::IResult *pResult, void *pUserData);
+
+	static void ConMappoints(IConsole::IResult *pResult, void *pUserData);
+	int CalculateMappoints(int ClientId, int *ScorePercentage);
+
 	void Whisper(int ClientId, char *pStr);
 	void WhisperId(int ClientId, int VictimId, const char *pMessage);
 	void Converse(int ClientId, char *pStr);
@@ -640,6 +648,9 @@ public:
 	void OnSetAuthed(int ClientId, int Level) override;
 
 	void ResetTuning();
+
+	// Unique
+	bool IsUniqueRace() const;
 };
 
 static inline bool CheckClientId(int ClientId)

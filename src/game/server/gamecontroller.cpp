@@ -22,7 +22,7 @@
 #include <game/teamscore.h>
 
 IGameController::IGameController(class CGameContext *pGameServer) :
-	m_Teams(pGameServer), m_pLoadBestTimeResult(nullptr)
+	m_Teams(pGameServer), m_pLoadBestTimeResult(nullptr), m_pLoadMapTypeResult(nullptr), m_aFastcapFlag{CSnappingFlag(pGameServer->Server()), CSnappingFlag(pGameServer->Server())}
 {
 	m_pGameServer = pGameServer;
 	m_pConfig = m_pGameServer->Config();
@@ -39,6 +39,11 @@ IGameController::IGameController(class CGameContext *pGameServer) :
 	m_aMapWish[0] = 0;
 
 	m_CurrentRecord.reset();
+
+	// Unique
+	m_aCurrentRecordHolder[0] = 0;
+	m_CurrentRecordQueueId = 0;
+	m_pRecordFlagChar = nullptr;
 }
 
 IGameController::~IGameController() = default;
@@ -172,9 +177,25 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int ClientId)
 		return false;
 
 	CSpawnEval Eval;
-	EvaluateSpawnType(&Eval, SPAWNTYPE_DEFAULT, ClientId);
-	EvaluateSpawnType(&Eval, SPAWNTYPE_RED, ClientId);
-	EvaluateSpawnType(&Eval, SPAWNTYPE_BLUE, ClientId);
+
+	if(IsUniqueRace())
+	{
+		if(g_Config.m_SvFastcap)
+		{
+			ESpawnType Type = GameServer()->m_apPlayers[ClientId]->m_FastcapSpawnAt == 1 ? SPAWNTYPE_RED : SPAWNTYPE_BLUE;
+			EvaluateSpawnType(&Eval, Type, ClientId);
+		}
+		else
+		{
+			EvaluateSpawnType(&Eval, SPAWNTYPE_DEFAULT, ClientId);
+		}
+	}
+	else
+	{
+		EvaluateSpawnType(&Eval, SPAWNTYPE_DEFAULT, ClientId);
+		EvaluateSpawnType(&Eval, SPAWNTYPE_RED, ClientId);
+		EvaluateSpawnType(&Eval, SPAWNTYPE_BLUE, ClientId);
+	}
 
 	*pOutPos = Eval.m_Pos;
 	return Eval.m_Got;
@@ -182,7 +203,9 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int ClientId)
 
 bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bool Initial, int Number)
 {
-	dbg_assert(Index >= 0, "Invalid entity index");
+	// NOLINTBEGIN(clang-analyzer-unix.Malloc)
+	if(Index <= 0)
+		dbg_msg("server", "Invalid entity index %d", Index);
 
 	const vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
 
@@ -387,6 +410,24 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 	{
 		new CGun(&GameServer()->m_World, Pos, false, false, Layer, Number);
 	}
+	else if(Index == ENTITY_FLAGSTAND_RED && IsUniqueRace())
+	{
+		m_aFastcapFlag[TEAM_RED].m_Pos = Pos;
+	}
+	else if(Index == ENTITY_FLAGSTAND_BLUE && IsUniqueRace())
+	{
+		m_aFastcapFlag[TEAM_BLUE].m_Pos = Pos;
+	}
+
+	if((Type == POWERUP_WEAPON || Type == POWERUP_NINJA) && IsUniqueRace())
+	{
+		if(g_Config.m_SvNoWeapons || (Type == POWERUP_WEAPON && SubType != WEAPON_GRENADE) || Type == POWERUP_NINJA)
+		{
+			Type = -1;
+			SubType = 0;
+		}
+	}
+	// NOLINTEND(clang-analyzer-unix.Malloc)
 
 	if(Type != -1) // NOLINT(clang-analyzer-unix.Malloc)
 	{
@@ -525,9 +566,13 @@ void IGameController::OnCharacterSpawn(class CCharacter *pChr)
 	// give default weapons
 	pChr->GiveWeapon(WEAPON_HAMMER);
 	pChr->GiveWeapon(WEAPON_GUN);
+
+	// Unique
+	if(IsUniqueRace())
+		UpdateRecordFlag();
 }
 
-void IGameController::HandleCharacterTiles(CCharacter *pChr, int MapIndex)
+void IGameController::HandleCharacterTiles(CCharacter *pChr, int MapIndex, float FractionOfTick)
 {
 	// Do nothing by default
 }
@@ -565,6 +610,7 @@ void IGameController::Tick()
 		if(m_pLoadBestTimeResult->m_Success)
 		{
 			m_CurrentRecord = m_pLoadBestTimeResult->m_CurrentRecord;
+			str_copy(m_aCurrentRecordHolder, m_pLoadBestTimeResult->m_aCurrentRecordHolder, sizeof(m_aCurrentRecordHolder));
 
 			for(int i = 0; i < MAX_CLIENTS; i++)
 			{
@@ -646,6 +692,17 @@ void IGameController::Snap(int SnappingClient)
 	pGameInfoEx->m_Flags2 = GAMEINFOFLAG2_HUD_DDRACE | GAMEINFOFLAG2_DDRACE_TEAM | GAMEINFOFLAG2_PREDICT_EVENTS;
 	if(g_Config.m_SvNoWeakHook)
 		pGameInfoEx->m_Flags2 |= GAMEINFOFLAG2_NO_WEAK_HOOK;
+	if(g_Config.m_SvHealthAndAmmo)
+	{
+		pGameInfoEx->m_Flags &= ~(GAMEINFOFLAG_UNLIMITED_AMMO | GAMEINFOFLAG_GAMETYPE_DDNET | GAMEINFOFLAG_GAMETYPE_DDRACE | GAMEINFOFLAG_PREDICT_DDRACE);
+		pGameInfoEx->m_Flags |= (GAMEINFOFLAG_GAMETYPE_VANILLA | GAMEINFOFLAG_PREDICT_VANILLA);
+		pGameInfoEx->m_Flags2 &= ~(GAMEINFOFLAG2_HUD_DDRACE | GAMEINFOFLAG2_DDRACE_TEAM);
+		pGameInfoEx->m_Flags2 |= (GAMEINFOFLAG2_HUD_HEALTH_ARMOR | GAMEINFOFLAG2_HUD_AMMO);
+	}
+	if(g_Config.m_SvFastcap)
+	{
+		pGameInfoEx->m_Flags |= GAMEINFOFLAG_GAMETYPE_FASTCAP | GAMEINFOFLAG_FLAG_STARTS_RACE;
+	}
 	pGameInfoEx->m_Version = GAMEINFO_CURVERSION;
 
 	if(Server()->IsSixup(SnappingClient))
@@ -691,6 +748,10 @@ void IGameController::Snap(int SnappingClient)
 			pMapTimeMsg->m_MapBestTimeMillis = MapTime.m_Milliseconds;
 		}
 	}
+
+	// Unique
+	if(IsUniqueRace())
+		SnapFlags(SnappingClient);
 }
 
 int IGameController::GetAutoTeam(int NotThisId)
@@ -775,4 +836,123 @@ int IGameController::TileFlagsToPickupFlags(int TileFlags) const
 	if(TileFlags & TILEFLAG_ROTATE)
 		PickupFlags |= PICKUPFLAG_ROTATE;
 	return PickupFlags;
+}
+
+// Unique - TODO move into Unique.cpp
+void IGameController::UpdateRecordFlag()
+{
+	if(m_aCurrentRecordHolder[0] == 0)
+		return;
+
+	CCharacter *RecordChar = nullptr;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetCharacter() && !str_comp(Server()->ClientName(i), m_aCurrentRecordHolder))
+		{
+			RecordChar = GameServer()->m_apPlayers[i]->GetCharacter();
+			break;
+		}
+	}
+
+	if(RecordChar)
+		m_pRecordFlagChar = RecordChar;
+	else
+		m_pRecordFlagChar = nullptr;
+}
+
+int IGameController::SnapRecordFlag(int SnappingClient)
+{
+	if(!m_pRecordFlagChar || SnappingClient == -1 || g_Config.m_SvHideScore)
+		return FLAG_MISSING;
+
+	CPlayer *pRecordFlagCarrier = m_pRecordFlagChar->GetPlayer();
+	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
+
+	if(pSnapPlayer->GetCharacter() && pSnapPlayer->GetCharacter()->NetworkClipped(SnappingClient, m_pRecordFlagChar->m_Pos))
+		return FLAG_MISSING;
+	if(!pSnapPlayer->m_ShowOthers && pRecordFlagCarrier->GetCid() != SnappingClient && pSnapPlayer->GetTeam() != TEAM_SPECTATORS)
+		return FLAG_MISSING;
+	if(pRecordFlagCarrier->GetCid() == SnappingClient && !pRecordFlagCarrier->m_ShowFlag)
+		return FLAG_MISSING;
+	if(pRecordFlagCarrier->GetCid() == SnappingClient && !pRecordFlagCarrier->m_ShowOthers && pRecordFlagCarrier->IsPaused() && pRecordFlagCarrier->SpectatorId() != SPEC_FREEVIEW)
+		return FLAG_MISSING;
+
+	CNetObj_Flag *pFlag = (CNetObj_Flag *)Server()->SnapNewItem(NETOBJTYPE_FLAG, TEAM_BLUE, sizeof(CNetObj_Flag));
+	if(!pFlag)
+		return FLAG_MISSING;
+	pFlag->m_X = (int)m_pRecordFlagChar->m_Pos.x;
+	pFlag->m_Y = (int)m_pRecordFlagChar->m_Pos.y;
+	pFlag->m_Team = TEAM_BLUE;
+
+	return pRecordFlagCarrier->GetCid();
+}
+
+int IGameController::SnapFastcapFlag(int SnappingClient)
+{
+	if(!g_Config.m_SvFastcap)
+		return FLAG_MISSING;
+
+	CCharacter *pChr = nullptr;
+	if((GameServer()->m_apPlayers[SnappingClient]->GetTeam() == -1 || GameServer()->m_apPlayers[SnappingClient]->IsPaused()) && GameServer()->m_apPlayers[SnappingClient]->SpectatorId() != SPEC_FREEVIEW)
+		pChr = GameServer()->m_apPlayers[GameServer()->m_apPlayers[SnappingClient]->SpectatorId()]->GetCharacter();
+	else if(GameServer()->m_apPlayers[SnappingClient]->GetCharacter())
+		pChr = GameServer()->m_apPlayers[SnappingClient]->GetCharacter();
+
+	bool ShowFlag1 = true;
+	bool ShowFlag2 = true;
+	if(pChr)
+	{
+		ShowFlag1 = !pChr->m_aGotFastcapFlag[TEAM_RED];
+		ShowFlag2 = !pChr->m_aGotFastcapFlag[TEAM_BLUE];
+	}
+
+	if(ShowFlag1 || ShowFlag2)
+	{
+		// There is no ddnet version multiple flags
+		if(Server()->GetClientVersion(SnappingClient) >= VERSION_DDNET_PREINPUT)
+		{
+			for(int FlagId = 0; FlagId < (int)std::size(m_aFastcapFlag); ++FlagId)
+			{
+				bool ShowFlag = FlagId == 0 ? ShowFlag1 : ShowFlag2;
+				if(!ShowFlag)
+					continue;
+				m_aFastcapFlag[FlagId].Snap();
+			}
+			return FLAG_ATSTAND;
+		}
+
+		// clang-format off
+		int ShowFlagTeam = (ShowFlag1 && ShowFlag2 && distance(GameServer()->m_apPlayers[SnappingClient]->m_ViewPos, m_aFastcapFlag[TEAM_RED].m_Pos) < distance(GameServer()->m_apPlayers[SnappingClient]->m_ViewPos, m_aFastcapFlag[TEAM_BLUE].m_Pos)) ||
+						   (ShowFlag1 && !ShowFlag2) ? TEAM_RED
+							                           : TEAM_BLUE;
+		// clang-format on
+
+		m_aFastcapFlag[ShowFlagTeam].Snap();
+
+		return FLAG_ATSTAND;
+	}
+	return FLAG_MISSING;
+}
+
+void IGameController::SnapFlags(int SnappingClient)
+{
+	if(Server()->IsSixup(SnappingClient))
+	{
+		protocol7::CNetObj_GameDataFlag *pGameDataFlag = Server()->SnapNewItem<protocol7::CNetObj_GameDataFlag>(0);
+		if(!pGameDataFlag)
+			return;
+
+		pGameDataFlag->m_FlagCarrierBlue = SnapRecordFlag(SnappingClient);
+		pGameDataFlag->m_FlagCarrierRed = SnapFastcapFlag(SnappingClient);
+	}
+	else
+	{
+		CNetObj_GameData *pGameDataObj = (CNetObj_GameData *)Server()->SnapNewItem(NETOBJTYPE_GAMEDATA, 0, sizeof(CNetObj_GameData));
+		if(!pGameDataObj)
+			return;
+		pGameDataObj->m_TeamscoreRed = 0;
+		pGameDataObj->m_TeamscoreBlue = 0;
+		pGameDataObj->m_FlagCarrierRed = SnapFastcapFlag(SnappingClient);
+		pGameDataObj->m_FlagCarrierBlue = SnapRecordFlag(SnappingClient);
+	}
 }

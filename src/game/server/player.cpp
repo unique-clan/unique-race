@@ -118,6 +118,10 @@ void CPlayer::Reset()
 	m_SpecTeam = false;
 	m_NinjaJetpack = false;
 
+	// Unique
+	m_ShowFlag = true;
+	m_FastcapSpawnAt = 1;
+
 	m_Paused = PAUSE_NONE;
 	m_DND = false;
 	m_Whispers = true;
@@ -975,13 +979,14 @@ void CPlayer::ProcessScoreResult(CScorePlayerResult &Result)
 			if(Birthday != 0 && !m_BirthdayAnnounced && GetCharacter())
 			{
 				char aBuf[512];
+				const char *pCommunityName = GameServer()->IsUniqueRace() ? "Unique" : "DDNet";
 				str_format(aBuf, sizeof(aBuf),
-					"Happy DDNet birthday to %s for finishing their first map %d year%s ago!",
-					Server()->ClientName(m_ClientId), Birthday, Birthday > 1 ? "s" : "");
+					"Happy %s birthday to %s for finishing their first map %d year%s ago!",
+					pCommunityName, Server()->ClientName(m_ClientId), Birthday, Birthday > 1 ? "s" : "");
 				GameServer()->SendChat(-1, TEAM_ALL, aBuf, m_ClientId);
 				str_format(aBuf, sizeof(aBuf),
-					"Happy DDNet birthday, %s!\nYou have finished your first map exactly %d year%s ago!",
-					Server()->ClientName(m_ClientId), Birthday, Birthday > 1 ? "s" : "");
+					"Happy %s birthday, %s!\nYou have finished your first map exactly %d year%s ago!",
+					pCommunityName, Server()->ClientName(m_ClientId), Birthday, Birthday > 1 ? "s" : "");
 				GameServer()->SendBroadcast(aBuf, m_ClientId);
 				m_BirthdayAnnounced = true;
 
@@ -993,7 +998,7 @@ void CPlayer::ProcessScoreResult(CScorePlayerResult &Result)
 		case CScorePlayerResult::PLAYER_TIMECP:
 			GameServer()->Score()->PlayerData(m_ClientId)->SetBestTimeCp(Result.m_Data.m_Info.m_aTimeCp);
 			char aBuf[128], aTime[32];
-			str_time_float(Result.m_Data.m_Info.m_Time.value(), TIME_HOURS_CENTISECS, aTime, sizeof(aTime));
+			str_time_float(Result.m_Data.m_Info.m_Time.value(), GameServer()->IsUniqueRace() ? TIME_HOURS_MILISECS : TIME_HOURS_CENTISECS, aTime, sizeof(aTime));
 			str_format(aBuf, sizeof(aBuf), "Showing the checkpoint times for '%s' with a race time of %s", Result.m_Data.m_Info.m_aRequestedPlayer, aTime);
 			GameServer()->SendChatTarget(m_ClientId, aBuf);
 			break;

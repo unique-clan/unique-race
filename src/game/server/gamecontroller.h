@@ -11,9 +11,11 @@
 
 #include <generated/protocol.h>
 
+#include <game/server/entities/snapping_flag.h>
 #include <game/server/teams.h>
 
 struct CScoreLoadBestTimeResult;
+struct CSqlLoadMapTypeResult;
 
 /*
 	Class: Game Controller
@@ -108,7 +110,7 @@ public:
 	*/
 	virtual void OnCharacterSpawn(class CCharacter *pChr);
 
-	virtual void HandleCharacterTiles(class CCharacter *pChr, int MapIndex);
+	virtual void HandleCharacterTiles(class CCharacter *pChr, int MapIndex, float FractionOfTick);
 	virtual void SetArmorProgress(CCharacter *pCharacter, int Progress) {}
 
 	/*
@@ -197,12 +199,17 @@ public:
 	 */
 	virtual CFinishTime SnapMapBestTime(int SnappingClient) { return CFinishTime::Unset(); }
 
-	// spawn
+	// Unique
+	int SnapRecordFlag(int SnappingClient);
+	int SnapFastcapFlag(int SnappingClient);
+	void SnapFlags(int SnappingClient);
+
+	//spawn
 	virtual bool CanSpawn(int Team, vec2 *pOutPos, int ClientId);
 
 	virtual void DoTeamChange(class CPlayer *pPlayer, int Team, bool DoChatMsg = true);
 
-	int TileFlagsToPickupFlags(int TileFlags) const;
+	virtual int TileFlagsToPickupFlags(int TileFlags) const;
 
 	/*
 
@@ -215,11 +222,24 @@ public:
 	CClientMask GetMaskForPlayerWorldEvent(int Asker, int ExceptID = -1);
 
 	bool IsTeamPlay() const { return m_GameFlags & GAMEFLAG_TEAMS; }
+
+	// Unique
+	virtual bool IsUniqueRace() const { return false; }
+
 	// DDRace
 
 	std::optional<float> m_CurrentRecord;
 	CGameTeams &Teams() { return m_Teams; }
 	std::shared_ptr<CScoreLoadBestTimeResult> m_pLoadBestTimeResult;
+
+	// Unique - TODO move into Unique.cpp
+	char m_aCurrentRecordHolder[16];
+	void UpdateRecordFlag();
+	uint32_t m_CurrentRecordQueueId;
+	CCharacter *m_pRecordFlagChar;
+
+	std::shared_ptr<CSqlLoadMapTypeResult> m_pLoadMapTypeResult;
+	CSnappingFlag m_aFastcapFlag[2];
 };
 
 #endif

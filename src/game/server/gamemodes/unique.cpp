@@ -1,11 +1,9 @@
 /* (c) Shereef Marzouk. See "licence DDRace.txt" and the readme.txt in the root of the distribution for more information. */
 /* Based on Race mod stuff and tweaked by GreYFoX@GTi and others to fit our DDRace needs. */
-#include "ddnet.h"
+#include "unique.h"
 
 #include <engine/server.h>
 #include <engine/shared/config.h>
-#include <engine/shared/protocol.h>
-#include <engine/shared/protocol7.h>
 
 #include <game/mapitems.h>
 #include <game/server/entities/character.h>
@@ -14,24 +12,32 @@
 #include <game/server/score.h>
 #include <game/version.h>
 
-#define GAME_TYPE_NAME "DDraceNetwork"
-#define TEST_TYPE_NAME "TestDDraceNetwork"
+#define GAME_TYPE_RACE "Race"
+#define GAME_TYPE_FASTCAP "FastCap"
+#define GAME_TYPE_SHORTS "Shorts"
+#define TEST_TYPE_NAME "TestUniqueRace"
 
-CGameControllerDDNet::CGameControllerDDNet(class CGameContext *pGameServer) :
+CGameControllerUnique::CGameControllerUnique(class CGameContext *pGameServer) :
 	IGameController(pGameServer)
 {
-	m_pGameType = g_Config.m_SvTestingCommands ? TEST_TYPE_NAME : GAME_TYPE_NAME;
+	if(g_Config.m_SvTestingCommands)
+		m_pGameType = TEST_TYPE_NAME;
+	else if(g_Config.m_SvShorts)
+		m_pGameType = GAME_TYPE_SHORTS;
+	else
+		m_pGameType = g_Config.m_SvFastcap ? GAME_TYPE_FASTCAP : GAME_TYPE_RACE;
 	m_GameFlags = protocol7::GAMEFLAG_RACE;
+	m_pRecordFlagChar = nullptr;
 }
 
-CGameControllerDDNet::~CGameControllerDDNet() = default;
+CGameControllerUnique::~CGameControllerUnique() = default;
 
-CScore *CGameControllerDDNet::Score()
+CScore *CGameControllerUnique::Score()
 {
 	return GameServer()->Score();
 }
 
-void CGameControllerDDNet::HandleCharacterTiles(CCharacter *pChr, int MapIndex, float FractionOfTick)
+void CGameControllerUnique::HandleCharacterTiles(CCharacter *pChr, int MapIndex, float FractionOfTick)
 {
 	CPlayer *pPlayer = pChr->GetPlayer();
 	const int ClientId = pPlayer->GetCid();
@@ -39,21 +45,33 @@ void CGameControllerDDNet::HandleCharacterTiles(CCharacter *pChr, int MapIndex, 
 	int TileIndex = GameServer()->Collision()->GetTileIndex(MapIndex);
 	int TileFIndex = GameServer()->Collision()->GetFrontTileIndex(MapIndex);
 
-	//Sensitivity
-	int S1 = GameServer()->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x + pChr->GetProximityRadius() / 3.f, pChr->GetPos().y - pChr->GetProximityRadius() / 3.f));
-	int S2 = GameServer()->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x + pChr->GetProximityRadius() / 3.f, pChr->GetPos().y + pChr->GetProximityRadius() / 3.f));
-	int S3 = GameServer()->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x - pChr->GetProximityRadius() / 3.f, pChr->GetPos().y - pChr->GetProximityRadius() / 3.f));
-	int S4 = GameServer()->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x - pChr->GetProximityRadius() / 3.f, pChr->GetPos().y + pChr->GetProximityRadius() / 3.f));
-	int Tile1 = GameServer()->Collision()->GetTileIndex(S1);
-	int Tile2 = GameServer()->Collision()->GetTileIndex(S2);
-	int Tile3 = GameServer()->Collision()->GetTileIndex(S3);
-	int Tile4 = GameServer()->Collision()->GetTileIndex(S4);
-	int FTile1 = GameServer()->Collision()->GetFrontTileIndex(S1);
-	int FTile2 = GameServer()->Collision()->GetFrontTileIndex(S2);
-	int FTile3 = GameServer()->Collision()->GetFrontTileIndex(S3);
-	int FTile4 = GameServer()->Collision()->GetFrontTileIndex(S4);
+	int Tile1 = 0;
+	int Tile2 = 0;
+	int Tile3 = 0;
+	int Tile4 = 0;
+	int FTile1 = 0;
+	int FTile2 = 0;
+	int FTile3 = 0;
+	int FTile4 = 0;
 
-	const ERaceState PlayerDDRaceState = pChr->m_DDRaceState;
+	//Sensitivity
+	if(!g_Config.m_SvProximityChecks)
+	{
+		int S1 = GameServer()->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x + pChr->GetProximityRadius() / 3.f, pChr->GetPos().y - pChr->GetProximityRadius() / 3.f));
+		int S2 = GameServer()->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x + pChr->GetProximityRadius() / 3.f, pChr->GetPos().y + pChr->GetProximityRadius() / 3.f));
+		int S3 = GameServer()->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x - pChr->GetProximityRadius() / 3.f, pChr->GetPos().y - pChr->GetProximityRadius() / 3.f));
+		int S4 = GameServer()->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x - pChr->GetProximityRadius() / 3.f, pChr->GetPos().y + pChr->GetProximityRadius() / 3.f));
+		Tile1 = GameServer()->Collision()->GetTileIndex(S1);
+		Tile2 = GameServer()->Collision()->GetTileIndex(S2);
+		Tile3 = GameServer()->Collision()->GetTileIndex(S3);
+		Tile4 = GameServer()->Collision()->GetTileIndex(S4);
+		FTile1 = GameServer()->Collision()->GetFrontTileIndex(S1);
+		FTile2 = GameServer()->Collision()->GetFrontTileIndex(S2);
+		FTile3 = GameServer()->Collision()->GetFrontTileIndex(S3);
+		FTile4 = GameServer()->Collision()->GetFrontTileIndex(S4);
+	}
+
+	const ERaceState &PlayerDDRaceState = pChr->m_DDRaceState;
 	bool IsOnStartTile = (TileIndex == TILE_START) || (TileFIndex == TILE_START) || FTile1 == TILE_START || FTile2 == TILE_START || FTile3 == TILE_START || FTile4 == TILE_START || Tile1 == TILE_START || Tile2 == TILE_START || Tile3 == TILE_START || Tile4 == TILE_START;
 	// start
 	if(IsOnStartTile && PlayerDDRaceState != ERaceState::CHEATED)
@@ -71,7 +89,7 @@ void CGameControllerDDNet::HandleCharacterTiles(CCharacter *pChr, int MapIndex, 
 			pChr->Die(ClientId, WEAPON_WORLD);
 			return;
 		}
-		if(g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO && Team != TEAM_FLOCK && Teams().IsValidTeamNumber(Team) && Teams().Count(Team) < g_Config.m_SvMinTeamSize && !Teams().TeamFlock(Team))
+		if(g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO && Team > TEAM_FLOCK && Team < TEAM_SUPER && Teams().Count(Team) < g_Config.m_SvMinTeamSize && !Teams().TeamFlock(Team))
 		{
 			char aBuf[128];
 			str_format(aBuf, sizeof(aBuf), "Your team has fewer than %d players, so your team rank won't count", g_Config.m_SvMinTeamSize);
@@ -81,8 +99,18 @@ void CGameControllerDDNet::HandleCharacterTiles(CCharacter *pChr, int MapIndex, 
 		{
 			pChr->ResetPickups();
 		}
+		/*bool started = false;
+		if(pChr->m_DDRaceState != ERaceState::STARTED)
+		{
+			started = true;
+		}*/
+		if(pChr->m_DDRaceState != ERaceState::STARTED)
+			Teams().OnCharacterStart(ClientId, FractionOfTick);
+		/*if(pChr->m_DDRaceState == ERaceState::STARTED && started)
+		{
+			dbg_msg("dbg", "Start Tick %d, StartOffset %f", Server()->Tick(), FractionOfTick);
+		}*/
 
-		Teams().OnCharacterStart(ClientId);
 		pChr->m_LastTimeCp = -1;
 		pChr->m_LastTimeCpBroadcasted = -1;
 		for(float &CurrentTimeCp : pChr->m_aCurrentTimeCp)
@@ -93,7 +121,10 @@ void CGameControllerDDNet::HandleCharacterTiles(CCharacter *pChr, int MapIndex, 
 
 	// finish
 	if(((TileIndex == TILE_FINISH) || (TileFIndex == TILE_FINISH) || FTile1 == TILE_FINISH || FTile2 == TILE_FINISH || FTile3 == TILE_FINISH || FTile4 == TILE_FINISH || Tile1 == TILE_FINISH || Tile2 == TILE_FINISH || Tile3 == TILE_FINISH || Tile4 == TILE_FINISH) && PlayerDDRaceState == ERaceState::STARTED)
-		Teams().OnCharacterFinish(ClientId);
+	{
+		//dbg_msg("dbg", "hit finish in tick %d", Server()->Tick());
+		Teams().OnCharacterFinish(ClientId, FractionOfTick);
+	}
 
 	// unlock team
 	else if(((TileIndex == TILE_UNLOCK_TEAM) || (TileFIndex == TILE_UNLOCK_TEAM)) && Teams().TeamLocked(GameServer()->GetDDRaceTeam(ClientId)))
@@ -103,7 +134,7 @@ void CGameControllerDDNet::HandleCharacterTiles(CCharacter *pChr, int MapIndex, 
 	}
 
 	// solo part
-	if(((TileIndex == TILE_SOLO_ENABLE) || (TileFIndex == TILE_SOLO_ENABLE)) && !Teams().m_Core.GetSolo(ClientId))
+	/*if(((TileIndex == TILE_SOLO_ENABLE) || (TileFIndex == TILE_SOLO_ENABLE)) && !Teams().m_Core.GetSolo(ClientId))
 	{
 		GameServer()->SendChatTarget(ClientId, "You are now in a solo part");
 		pChr->SetSolo(true);
@@ -112,15 +143,16 @@ void CGameControllerDDNet::HandleCharacterTiles(CCharacter *pChr, int MapIndex, 
 	{
 		GameServer()->SendChatTarget(ClientId, "You are now out of the solo part");
 		pChr->SetSolo(false);
-	}
+	}*/
 }
 
-void CGameControllerDDNet::SetArmorProgress(CCharacter *pCharacter, int Progress)
+void CGameControllerUnique::SetArmorProgress(CCharacter *pCharacter, int Progress)
 {
-	pCharacter->SetArmor(std::clamp(10 - (Progress / 15), 0, 10));
+	if(!g_Config.m_SvHealthAndAmmo)
+		pCharacter->SetArmor(std::clamp(10 - (Progress / 15), 0, 10));
 }
 
-int CGameControllerDDNet::SnapPlayerScore(int SnappingClient, CPlayer *pPlayer)
+int CGameControllerUnique::SnapPlayerScore(int SnappingClient, CPlayer *pPlayer)
 {
 	bool HideScore = g_Config.m_SvHideScore && SnappingClient != pPlayer->GetCid();
 	std::optional<float> Score = GameServer()->Score()->PlayerData(pPlayer->GetCid())->m_BestTime;
@@ -151,7 +183,7 @@ int CGameControllerDDNet::SnapPlayerScore(int SnappingClient, CPlayer *pPlayer)
 	return -ScoreSeconds;
 }
 
-IGameController::CFinishTime CGameControllerDDNet::SnapPlayerTime(int SnappingClient, CPlayer *pPlayer)
+IGameController::CFinishTime CGameControllerUnique::SnapPlayerTime(int SnappingClient, CPlayer *pPlayer)
 {
 	std::optional<float> BestTime = GameServer()->Score()->PlayerData(pPlayer->GetCid())->m_BestTime;
 	if(BestTime.has_value() && (!g_Config.m_SvHideScore || SnappingClient == pPlayer->GetCid()))
@@ -165,7 +197,7 @@ IGameController::CFinishTime CGameControllerDDNet::SnapPlayerTime(int SnappingCl
 	return CFinishTime::NotFinished();
 }
 
-IGameController::CFinishTime CGameControllerDDNet::SnapMapBestTime(int SnappingClient)
+IGameController::CFinishTime CGameControllerUnique::SnapMapBestTime(int SnappingClient)
 {
 	if(m_CurrentRecord.has_value() && !g_Config.m_SvHideScore)
 	{
@@ -178,7 +210,7 @@ IGameController::CFinishTime CGameControllerDDNet::SnapMapBestTime(int SnappingC
 	return CFinishTime::NotFinished();
 }
 
-void CGameControllerDDNet::OnPlayerConnect(CPlayer *pPlayer)
+void CGameControllerUnique::OnPlayerConnect(CPlayer *pPlayer)
 {
 	IGameController::OnPlayerConnect(pPlayer);
 	int ClientId = pPlayer->GetCid();
@@ -196,12 +228,12 @@ void CGameControllerDDNet::OnPlayerConnect(CPlayer *pPlayer)
 		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s", Server()->ClientName(ClientId), GetTeamName(pPlayer->GetTeam()));
 		GameServer()->SendChat(-1, TEAM_ALL, aBuf, -1, CGameContext::FLAG_SIX);
 
-		GameServer()->SendChatTarget(ClientId, "DDraceNetwork Mod. Version: " GAME_VERSION);
-		GameServer()->SendChatTarget(ClientId, "please visit DDNet.org or say /info and make sure to read our /rules");
+		GameServer()->SendChatTarget(ClientId, "Unique Race. Version: " GAME_VERSION);
+		GameServer()->SendChatTarget(ClientId, "please visit uniqueclan.net or say /info and make sure to read our /rules");
 	}
 }
 
-void CGameControllerDDNet::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)
+void CGameControllerUnique::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)
 {
 	int ClientId = pPlayer->GetCid();
 	bool WasModerator = pPlayer->m_Moderating && Server()->ClientIngame(ClientId);
@@ -219,20 +251,20 @@ void CGameControllerDDNet::OnPlayerDisconnect(CPlayer *pPlayer, const char *pRea
 			Teams().SetClientInvited(Team, ClientId, false);
 }
 
-void CGameControllerDDNet::OnReset()
+void CGameControllerUnique::OnReset()
 {
 	IGameController::OnReset();
 	Teams().Reset();
 }
 
-void CGameControllerDDNet::Tick()
+void CGameControllerUnique::Tick()
 {
 	IGameController::Tick();
 	Teams().ProcessSaveTeam();
 	Teams().Tick();
 }
 
-void CGameControllerDDNet::DoTeamChange(class CPlayer *pPlayer, int Team, bool DoChatMsg)
+void CGameControllerUnique::DoTeamChange(class CPlayer *pPlayer, int Team, bool DoChatMsg)
 {
 	if(!IsValidTeam(Team))
 		return;
@@ -246,7 +278,6 @@ void CGameControllerDDNet::DoTeamChange(class CPlayer *pPlayer, int Team, bool D
 	{
 		if(g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO && pCharacter)
 		{
-			Teams().OnCharacterDeath(pPlayer->GetCid(), WEAPON_GAME);
 			// Joining spectators should not kill a locked team, but should still
 			// check if the team finished by you leaving it.
 			int DDRTeam = pCharacter->Team();
@@ -256,4 +287,16 @@ void CGameControllerDDNet::DoTeamChange(class CPlayer *pPlayer, int Team, bool D
 	}
 
 	IGameController::DoTeamChange(pPlayer, Team, DoChatMsg);
+}
+
+int CGameControllerUnique::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)
+{
+	if(m_pRecordFlagChar && m_pRecordFlagChar == pVictim)
+		m_pRecordFlagChar = NULL;
+	return 0;
+}
+
+int CGameControllerUnique::TileFlagsToPickupFlags(int TileFlags) const
+{
+	return 0;
 }

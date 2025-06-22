@@ -5,6 +5,7 @@
 #include "entities/character.h"
 #include "gamemodes/ddnet.h"
 #include "gamemodes/mod.h"
+#include "gamemodes/unique.h"
 #include "player.h"
 #include "score.h"
 #include "teeinfo.h"
@@ -2945,7 +2946,10 @@ void CGameContext::OnKillNetMessage(const CNetMsg_Cl_Kill *pMsg, int ClientId)
 		return;
 	}
 	CPlayer *pPlayer = m_apPlayers[ClientId];
-	if(pPlayer->m_LastKill && pPlayer->m_LastKill + Server()->TickSpeed() * g_Config.m_SvKillDelay > Server()->Tick())
+
+	// Unique - Other kill delay for grenade lineups
+	int KillDelay = IsUniqueRace() ? Server()->TickSpeed() / 2 : Server()->TickSpeed() * g_Config.m_SvKillDelay;
+	if(pPlayer->m_LastKill && pPlayer->m_LastKill + KillDelay > Server()->Tick())
 		return;
 	if(pPlayer->IsPaused())
 		return;
@@ -4079,6 +4083,13 @@ void CGameContext::RegisterChatCommands()
 	Console()->Register("hitothers", "?s['all'|'hammer'|'shotgun'|'grenade'|'laser']", CFGFLAG_CHAT | CMDFLAG_PRACTICE, ConPracticeToggleHitOthers, this, "Toggles hit others");
 
 	Console()->Register("kill", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConProtectedKill, this, "Kill yourself when kill-protected during a long game (use f1, kill for regular kill)");
+
+	// Unique
+	Console()->Register("showflag", "?i['0'|'1']", CFGFLAG_CHAT | CFGFLAG_SERVER, ConShowFlag, this, "Whether to show your own record flag or not (on by default)");
+	Console()->Register("red", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConRed, this, "Change to red side on Fastcap");
+	Console()->Register("blue", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConBlue, this, "Change to blue side on Fastcap");
+
+	Console()->Register("mappoints", "?r[player name]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConMappoints, this, "Shows the current points of a player beginning with name r (your rank by default)");
 }
 
 void CGameContext::OnInit(const void *pPersistentData)
@@ -4175,6 +4186,31 @@ void CGameContext::OnInit(const void *pPersistentData)
 
 	m_MapBugs.Dump();
 
+	// Unique - some settings need to be done before map loading
+	bool IsFastcap = !str_comp(Config()->m_SvGametype, "fastcap");
+	bool IsRace = !str_comp(Config()->m_SvGametype, "race") || !str_comp(Config()->m_SvGametype, "unique");
+	bool IsShorts = !str_comp(Config()->m_SvGametype, "shorts");
+	bool IsUnique = IsShorts || IsRace || IsFastcap;
+
+	if(IsUnique)
+	{
+		g_Config.m_SvSoloServer = 1; // forever alone
+		g_Config.m_SvDestroyBulletsOnDeath = g_Config.m_SvKillGrenades; // legacy
+		g_Config.m_SvProximityChecks = 1; // forever buggy
+		g_Config.m_SvSaveWorseScores = 0; // do not spam to much in /times
+		if(IsFastcap || g_Config.m_SvFastcap) // force damage and fastcap on fastcap, shorts can also have fastcap enabled
+		{
+			g_Config.m_SvFastcap = 1;
+			g_Config.m_SvHealthAndAmmo = 1;
+			g_Config.m_SvDestroyBulletsOnDeath = 1;
+		}
+		if(IsShorts || g_Config.m_SvShorts) // hide scores in shorts
+		{
+			g_Config.m_SvShorts = 1;
+			g_Config.m_SvHideScore = 1;
+		}
+	}
+
 	if(g_Config.m_SvSoloServer)
 	{
 		g_Config.m_SvTeam = SV_TEAM_FORCED_SOLO;
@@ -4192,6 +4228,8 @@ void CGameContext::OnInit(const void *pPersistentData)
 
 	if(!str_comp(Config()->m_SvGametype, "mod"))
 		m_pController = new CGameControllerMod(this);
+	else if(IsUnique)
+		m_pController = new CGameControllerUnique(this);
 	else
 		m_pController = new CGameControllerDDNet(this);
 
@@ -5430,4 +5468,62 @@ void CGameContext::ReadCensorList()
 bool CGameContext::PracticeByDefault() const
 {
 	return g_Config.m_SvPracticeByDefault && g_Config.m_SvTestingCommands;
+}
+
+// Unique
+bool CGameContext::IsUniqueRace() const
+{
+	dbg_assert(m_pController != nullptr, "can't call this without controller");
+	return m_pController->IsUniqueRace();
+}
+
+int CGameContext::CalculateMappoints(int ClientId, int *pScorePercentage)
+{
+	if(!m_pController || !m_pController->m_CurrentRecord || !m_pController->m_CurrentRecord.has_value() || !m_pController->m_pLoadMapTypeResult)
+	{
+		return -1;
+	}
+
+	const char *MapType = m_pController->m_pLoadMapTypeResult ? m_pController->m_pLoadMapTypeResult->m_aCurrentMapType : "Short";
+	float BestTime = m_pController->m_CurrentRecord.value();
+	float PlayerTime = Score()->PlayerData(ClientId)->m_BestTime.value_or(0.0f);
+	if(PlayerTime <= 0.0f)
+	{
+		return -2;
+	}
+
+	auto CalcScore = [&](double MapModifier) {
+		float Ratio = PlayerTime / BestTime;
+		*pScorePercentage = (int)((Ratio - 1.0f) * 100);
+		return (int)(100.0 * std::exp(MapModifier * (Ratio - 1.0) * -1.0));
+	};
+
+	if(str_comp(MapType, "Short") == 0)
+	{
+		return CalcScore(5.0);
+	}
+	else if(str_comp(MapType, "Middle") == 0)
+	{
+		return CalcScore(3.5);
+	}
+	else if(str_comp(MapType, "Fastcap") == 0)
+	{
+		return CalcScore(5.0);
+	}
+	else if(str_comp(MapType, "Long Easy") == 0)
+	{
+		return CalcScore(2.0);
+	}
+	else if(str_comp(MapType, "Long Advanced") == 0)
+	{
+		return CalcScore(1.0);
+	}
+	else if(str_comp(MapType, "Long Hard") == 0)
+	{
+		return CalcScore(0.03);
+	}
+	else
+	{
+		return -3;
+	}
 }

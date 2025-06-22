@@ -33,7 +33,8 @@ class CScore
 		const char *pThreadName,
 		int ClientId,
 		const char *pName,
-		int Offset);
+		int Offset,
+		bool IsUnique);
 
 	// returns true if the player should be rate limited
 	bool RateLimitPlayer(int ClientId);
@@ -44,11 +45,12 @@ public:
 	CPlayerData *PlayerData(int Id) { return &m_aPlayerData[Id]; }
 
 	void LoadBestTime();
+	void LoadMapType();
 	void MapInfo(int ClientId, const char *pMapName);
 	void MapVote(int ClientId, const char *pMapName);
 	void LoadPlayerData(int ClientId, const char *pName = "");
 	void LoadPlayerTimeCp(int ClientId, const char *pName = "");
-	void SaveScore(int ClientId, int TimeTicks, const char *pTimestamp, const float aTimeCp[NUM_CHECKPOINTS], bool NotEligible);
+	void SaveScore(int ClientId, float Time, int TimeTicks, const char *pTimestamp, const float aTimeCp[NUM_CHECKPOINTS], bool NotEligible);
 
 	void SaveTeamScore(int Team, int *pClientIds, unsigned int Size, int TimeTicks, const char *pTimestamp);
 
