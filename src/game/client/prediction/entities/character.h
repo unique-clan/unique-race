@@ -33,7 +33,7 @@ public:
 
 	bool IsGrounded();
 
-	void SetWeapon(int Weapon);
+	void SetWeapon(int Weapon, bool Silent = false);
 	void SetSolo(bool Solo);
 	void SetSuper(bool Super);
 	void HandleWeaponSwitch();

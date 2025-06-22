@@ -1146,10 +1146,10 @@ int CServer::NewClientNoAuthCallback(int ClientId, void *pUser)
 	pThis->m_aClients[ClientId].m_Country = -1;
 	pThis->m_aClients[ClientId].m_AuthKey = -1;
 	pThis->m_aClients[ClientId].m_AuthTries = 0;
-	pThis->m_aClients[ClientId].m_AuthHidden = false;
+	pThis->m_aClients[ClientId].m_AuthHidden = true;
 	pThis->m_aClients[ClientId].m_pRconCmdToSend = nullptr;
 	pThis->m_aClients[ClientId].m_MaplistEntryToSend = CClient::MAPLIST_UNINITIALIZED;
-	pThis->m_aClients[ClientId].m_ShowIps = false;
+	pThis->m_aClients[ClientId].m_ShowIps = true;
 	pThis->m_aClients[ClientId].m_DebugDummy = false;
 	pThis->m_aClients[ClientId].m_ForceHighBandwidthOnSpectate = false;
 	pThis->m_aClients[ClientId].m_DDNetVersion = VERSION_NONE;
@@ -1178,12 +1178,12 @@ int CServer::NewClientCallback(int ClientId, void *pUser, bool Sixup)
 	pThis->m_aClients[ClientId].m_Country = -1;
 	pThis->m_aClients[ClientId].m_AuthKey = -1;
 	pThis->m_aClients[ClientId].m_AuthTries = 0;
-	pThis->m_aClients[ClientId].m_AuthHidden = false;
+	pThis->m_aClients[ClientId].m_AuthHidden = true;
 	pThis->m_aClients[ClientId].m_pRconCmdToSend = nullptr;
 	pThis->m_aClients[ClientId].m_MaplistEntryToSend = CClient::MAPLIST_UNINITIALIZED;
 	pThis->m_aClients[ClientId].m_Traffic = 0;
 	pThis->m_aClients[ClientId].m_TrafficSince = 0;
-	pThis->m_aClients[ClientId].m_ShowIps = false;
+	pThis->m_aClients[ClientId].m_ShowIps = true;
 	pThis->m_aClients[ClientId].m_DebugDummy = false;
 	pThis->m_aClients[ClientId].m_ForceHighBandwidthOnSpectate = false;
 	pThis->m_aClients[ClientId].m_DDNetVersion = VERSION_NONE;
@@ -1222,7 +1222,25 @@ void CServer::InitDnsbl(int ClientId)
 		str_format(aBuf, sizeof(aBuf), "%s.%d.%d.%d.%d.%s", Config()->m_SvDnsblKey, Addr.ip[3], Addr.ip[2], Addr.ip[1], Addr.ip[0], Config()->m_SvDnsblHost);
 	}
 
-	m_aClients[ClientId].m_pDnsblLookup = std::make_shared<CHostLookup>(aBuf, NETTYPE_IPV4);
+	// Check if a custom DNS server is configured
+	if(Config()->m_SvDnsblServer[0] != '\0')
+	{
+		NETADDR DnsServer;
+		if(net_addr_from_str(&DnsServer, Config()->m_SvDnsblServer) == 0)
+		{
+			m_aClients[ClientId].m_pDnsblLookup = std::make_shared<CHostLookup>(aBuf, NETTYPE_IPV4, DnsServer);
+		}
+		else
+		{
+			log_warn("dnsbl", "invalid DNS server address '%s', using system resolver", Config()->m_SvDnsblServer);
+			m_aClients[ClientId].m_pDnsblLookup = std::make_shared<CHostLookup>(aBuf, NETTYPE_IPV4);
+		}
+	}
+	else
+	{
+		m_aClients[ClientId].m_pDnsblLookup = std::make_shared<CHostLookup>(aBuf, NETTYPE_IPV4);
+	}
+
 	Engine()->AddJob(m_aClients[ClientId].m_pDnsblLookup);
 	m_aClients[ClientId].m_DnsblState = EDnsblState::PENDING;
 }
@@ -1267,12 +1285,12 @@ int CServer::DelClientCallback(int ClientId, const char *pReason, void *pUser)
 	pThis->m_aClients[ClientId].m_Country = -1;
 	pThis->m_aClients[ClientId].m_AuthKey = -1;
 	pThis->m_aClients[ClientId].m_AuthTries = 0;
-	pThis->m_aClients[ClientId].m_AuthHidden = false;
+	pThis->m_aClients[ClientId].m_AuthHidden = true;
 	pThis->m_aClients[ClientId].m_pRconCmdToSend = nullptr;
 	pThis->m_aClients[ClientId].m_MaplistEntryToSend = CClient::MAPLIST_UNINITIALIZED;
 	pThis->m_aClients[ClientId].m_Traffic = 0;
 	pThis->m_aClients[ClientId].m_TrafficSince = 0;
-	pThis->m_aClients[ClientId].m_ShowIps = false;
+	pThis->m_aClients[ClientId].m_ShowIps = true;
 	pThis->m_aClients[ClientId].m_DebugDummy = false;
 	pThis->m_aClients[ClientId].m_ForceHighBandwidthOnSpectate = false;
 	pThis->m_aPrevStates[ClientId] = CClient::STATE_EMPTY;
@@ -3243,6 +3261,7 @@ int CServer::Run()
 							break;
 						}
 					}
+
 					if(!ClientHadInput)
 						GameServer()->OnClientPredictedEarlyInput(c, nullptr);
 				}

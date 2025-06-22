@@ -1,0 +1,35 @@
+name: Rebase onto DDNet
+on:
+  schedule:
+    # Runs every Saturday at 01:00 UTC
+    - cron: "0 1 * * 6"
+  workflow_dispatch: # allows manual trigger too
+
+jobs:
+  rebase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          # Use a personal access token with repo permissions to trigger workflows on push
+          token: ${{ secrets.REBASE_ACTION_PAT }}
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/ddnet/ddnet.git
+          git fetch upstream master
+
+      - name: Configure Git
+        run: |
+          git config user.name "rebase-action"
+          git config user.email ""
+
+      - name: Rebase with upstream
+        run: |
+          git rebase upstream/master
+
+      - name: Push changes
+        run: |
+          git push origin --force-with-lease

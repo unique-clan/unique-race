@@ -50,7 +50,7 @@ public:
 
 	bool IsGrounded();
 
-	void SetWeapon(int W);
+	void SetWeapon(int W, bool Silent = false);
 	void SetJetpack(bool Active);
 	void SetEndlessJump(bool Active);
 	void SetJumps(int Jumps);
@@ -170,7 +170,7 @@ private:
 	void SnapCharacter(int SnappingClient, int Id);
 	static bool IsSwitchActiveCb(int Number, void *pUser);
 	void SetTimeCheckpoint(int TimeCheckpoint);
-	void HandleTiles(int Index);
+	void HandleTiles(int Index, float FractionOfTick);
 	float m_Time;
 	int m_LastBroadcast;
 	void DDRaceInit();
@@ -213,6 +213,7 @@ public:
 	int m_PainSoundTimer;
 	int m_LastMove;
 	int m_StartTime;
+	float m_StartTimeOffset;
 	vec2 m_PrevPos;
 	int m_TeleCheckpoint;
 
@@ -236,6 +237,9 @@ public:
 
 	int m_SpawnTick;
 	int m_WeaponChangeTick;
+
+	// Unique
+	bool m_aGotFastcapFlag[2];
 
 	// Setters/Getters because i don't want to modify vanilla vars access modifiers
 	int GetLastWeapon() const { return m_LastWeapon; }
